@@ -24,6 +24,43 @@ export default class ProductsPreview extends React.Component {
         </div>
       </div>
 
+      {/* Products List Section - Preview */}
+      <div className="bg-grey-1 pv4">
+        <div className="ph3 mw7 center">
+          <h2 className="f2 b lh-title mb3">Our Products</h2>
+          <div className="flex-ns flex-wrap mhn2-ns">
+            {/* Sample product preview */}
+            <div className="w-33-ns ph2 mb4">
+              <div className="bg-white br2 pa3 h-100">
+                <div className="w-100 db mb3 br2 bg-light-gray" style={{height: "200px", display: "flex", alignItems: "center", justifyContent: "center"}}>
+                  <span className="gray">Product Image</span>
+                </div>
+                <h3 className="f4 b lh-title mb2">Sample Product</h3>
+                <p className="f6 lh-copy mb2">This is a sample product description.</p>
+                <p className="f3 primary b mb2">$29.99</p>
+                <span className="f6 link dim br2 ph2 pv1 mb2 dib white bg-primary">Coffee</span>
+                <span className="f6 br2 ph2 pv1 mb2 dib white bg-green ml2">In Stock</span>
+                <a href="#" className="db f6 link dim br2 ph3 pv2 mb2 dib white bg-primary tc no-underline">View Details</a>
+              </div>
+            </div>
+            {/* Repeat sample products */}
+            <div className="w-33-ns ph2 mb4">
+              <div className="bg-white br2 pa3 h-100">
+                <div className="w-100 db mb3 br2 bg-light-gray" style={{height: "200px", display: "flex", alignItems: "center", justifyContent: "center"}}>
+                  <span className="gray">Product Image</span>
+                </div>
+                <h3 className="f4 b lh-title mb2">Another Product</h3>
+                <p className="f6 lh-copy mb2">Another sample product description.</p>
+                <p className="f3 primary b mb2">$45.00</p>
+                <span className="f6 link dim br2 ph2 pv1 mb2 dib white bg-primary">Equipment</span>
+                <span className="f6 br2 ph2 pv1 mb2 dib white bg-green ml2">In Stock</span>
+                <a href="#" className="db f6 link dim br2 ph3 pv2 mb2 dib white bg-primary tc no-underline">View Details</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="mw7 center">
         <div className="mw6 ph3 mb3">
           <h3 className="f3 b lh-title mb2">{entry.getIn(["data", "main", "heading"])}</h3>

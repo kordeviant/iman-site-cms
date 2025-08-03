@@ -4,6 +4,39 @@
 
 {{ partial "4-up" .Params.intro }}
 
+<!-- Products List Section -->
+<div class="bg-grey-1 pv4">
+  <div class="ph3 mw7 center">
+    <h2 class="f2 b lh-title mb3">Our Products</h2>
+    <div class="flex-ns flex-wrap mhn2-ns">
+      {{ range (where .Site.Pages "Section" "products").ByParam "date" }}
+        {{ if ne .File.LogicalName "_index.md" }}
+        <div class="w-33-ns ph2 mb4">
+          <div class="bg-white br2 pa3 h-100">
+            {{ if .Params.image }}
+            <img src="{{ .Params.image }}" alt="{{ .Title }}" class="w-100 db mb3 br2" style="height: 200px; object-fit: cover;">
+            {{ end }}
+            <h3 class="f4 b lh-title mb2">{{ .Title }}</h3>
+            <p class="f6 lh-copy mb2">{{ .Params.description }}</p>
+            {{ if .Params.price }}
+            <p class="f3 primary b mb2">${{ .Params.price }}</p>
+            {{ end }}
+            {{ if .Params.category }}
+            <span class="f6 link dim br2 ph2 pv1 mb2 dib white bg-primary">{{ .Params.category }}</span>
+            {{ end }}
+            {{ if not .Params.in_stock }}
+            <span class="f6 br2 ph2 pv1 mb2 dib white bg-gray">Out of Stock</span>
+            {{ else }}
+            <span class="f6 br2 ph2 pv1 mb2 dib white bg-green">In Stock</span>
+            {{ end }}
+            <a href="{{ .RelPermalink }}" class="db f6 link dim br2 ph3 pv2 mb2 dib white bg-primary tc no-underline">View Details</a>
+          </div>
+        </div>
+        {{ end }}
+      {{ end }}
+    </div>
+  </div>
+</div>
 
 {{ with .Params.main }}
 <div class="mw7 center">

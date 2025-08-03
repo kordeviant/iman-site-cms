@@ -1,0 +1,56 @@
+{{ define "main" }}
+
+<div class="bg-off-white pv4">
+  <div class="ph3 mw7 center">
+    <div class="flex-l mhn2-l">
+      <div class="w-50-l ph2-l">
+        {{ if .Params.image }}
+        <img src="{{ .Params.image }}" alt="{{ .Title }}" class="w-100 db br2">
+        {{ end }}
+      </div>
+      <div class="w-50-l ph2-l">
+        <h1 class="f2 lh-title mb3">{{ .Title }}</h1>
+        
+        {{ if .Params.category }}
+        <p class="f6 mb2">
+          <span class="b">Category:</span> 
+          <span class="link dim br2 ph2 pv1 dib white bg-primary">{{ .Params.category }}</span>
+        </p>
+        {{ end }}
+        
+        {{ if .Params.price }}
+        <p class="f1 primary b mb3">${{ .Params.price }}</p>
+        {{ end }}
+        
+        <p class="f5 lh-copy mb3">{{ .Params.description }}</p>
+        
+        <div class="mb3">
+          {{ if .Params.in_stock }}
+          <span class="f6 br2 ph3 pv2 dib white bg-green">✓ In Stock</span>
+          {{ else }}
+          <span class="f6 br2 ph3 pv2 dib white bg-gray">Out of Stock</span>
+          {{ end }}
+        </div>
+        
+        {{ if .Params.in_stock }}
+        <button class="f6 link dim br2 ph3 pv3 mb2 dib white bg-primary b pointer">Add to Cart</button>
+        {{ end }}
+        
+        <a href="/products" class="f6 link dim br2 ph3 pv3 mb2 dib dark-gray bg-light-gray ml2">← Back to Products</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ if .Content }}
+<div class="mw7 center ph3 pv4">
+  <div class="mw6">
+    <h2 class="f3 b lh-title mb3">Product Details</h2>
+    <div class="lh-copy measure">
+      {{ .Content }}
+    </div>
+  </div>
+</div>
+{{ end }}
+
+{{ end }}
