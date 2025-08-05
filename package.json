@@ -26,6 +26,8 @@
     "scrape:test": "node scripts/test-chrome.js",
     "scrape:test-instagram": "node scripts/test-instagram.js",
     "scrape:test-login": "node scripts/test-interactive-login.js",
+    "scrape:test-login-only": "node scripts/test-login-only.js",
+    "scrape:diagnose": "node scripts/diagnose-page.js",
     "scrape:test-session": "node scripts/test-session.js",
     "scrape:clear-session": "node scripts/test-session.js --clear-session"
   },

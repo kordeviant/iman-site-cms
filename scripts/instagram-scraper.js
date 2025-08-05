@@ -203,9 +203,17 @@ class InstagramScraper {
     try {
       console.log('💾 Saving login session...');
       
+      // Ensure session directory exists
+      this.ensureDirectoryExists(this.sessionDir);
+      
       // Save cookies
       const cookies = await this.page.cookies();
-      fs.writeFileSync(this.cookiesFile, JSON.stringify(cookies, null, 2));
+      if (cookies && cookies.length > 0) {
+        fs.writeFileSync(this.cookiesFile, JSON.stringify(cookies, null, 2));
+        console.log(`📄 Saved ${cookies.length} cookies`);
+      } else {
+        console.log('⚠️  No cookies to save');
+      }
       
       // Save session info
       const sessionInfo = {
@@ -217,8 +225,12 @@ class InstagramScraper {
       fs.writeFileSync(this.sessionFile, JSON.stringify(sessionInfo, null, 2));
       
       console.log('✅ Session saved successfully!');
+      console.log(`📁 Session files saved to: ${this.sessionDir}`);
+      
     } catch (error) {
-      console.log('⚠️  Failed to save session:', error.message);
+      console.error('❌ Failed to save session:', error.message);
+      console.error('🔍 Stack trace:', error.stack);
+      // Don't throw error - just log it
     }
   }
 
@@ -235,9 +247,9 @@ class InstagramScraper {
       // Load session info
       const sessionInfo = JSON.parse(fs.readFileSync(this.sessionFile, 'utf8'));
       
-      // Check if session is not too old (24 hours)
+      // Check if session is not too old (48 hours - increased from 24)
       const sessionAge = Date.now() - sessionInfo.timestamp;
-      const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+      const maxAge = 48 * 60 * 60 * 1000; // 48 hours
       
       if (sessionAge > maxAge) {
         console.log('⏰ Saved session is too old, starting fresh');
@@ -257,7 +269,8 @@ class InstagramScraper {
       this.isLoggedIn = sessionInfo.isLoggedIn;
       
       if (this.isLoggedIn) {
-        console.log('✅ Session restored successfully!');
+        console.log('✅ Session restored successfully! (Valid for next 48 hours)');
+        console.log(`📅 Session age: ${Math.round(sessionAge / (60 * 60 * 1000))} hours`);
         return true;
       } else {
         console.log('❌ Saved session indicates not logged in');
@@ -531,7 +544,7 @@ class InstagramScraper {
     // Try to load existing session first (without navigating to Instagram)
     const sessionLoaded = await this.loadSession();
     if (sessionLoaded) {
-      console.log("🎯 Found saved login session! Will validate when needed.");
+      console.log("🎯 Found saved login session! Skipping login.");
       return true;
     }
 
@@ -582,64 +595,70 @@ class InstagramScraper {
       console.log('✅ Successfully logged into Instagram!');
       this.isLoggedIn = true;
       
-      // Save session for future use
-      await this.saveSession();
+      // Save session for future use - with better error handling
+      try {
+        await this.saveSession();
+        console.log('💾 Login session saved for future use!');
+      } catch (sessionError) {
+        console.error('⚠️  Warning: Could not save session, but login was successful:', sessionError.message);
+        // Don't fail the entire login because of session save issues
+      }
       
       // Handle any post-login dialogs (Save Login Info, Notifications, etc.)
       try {
         console.log('🔄 Checking for post-login dialogs...');
         
+        // Wait a bit for any dialogs to appear
+        await this.wait(3000);
+        
         // Handle "Save Your Login Info?" dialog
-        const saveLoginButton = await this.page.$('button:contains("Not Now")');
-        if (saveLoginButton) {
-          console.log('💾 Dismissing "Save Login Info" dialog...');
-          await saveLoginButton.click();
-          await this.wait(1000);
+        const saveLoginButtons = await this.page.$$('button');
+        for (const button of saveLoginButtons) {
+          const text = await this.page.evaluate(el => el.textContent?.trim(), button);
+          if (text && text.toLowerCase().includes('not now')) {
+            console.log('💾 Dismissing "Save Login Info" dialog...');
+            await button.click();
+            await this.wait(1000);
+            break;
+          }
         }
         
         // Handle notification permission dialog
-        const notificationButton = await this.page.$('button:contains("Not Now")');
-        if (notificationButton) {
-          console.log('🔔 Dismissing notification dialog...');
-          await notificationButton.click();
-          await this.wait(1000);
+        const notificationButtons = await this.page.$$('button');
+        for (const button of notificationButtons) {
+          const text = await this.page.evaluate(el => el.textContent?.trim(), button);
+          if (text && text.toLowerCase().includes('not now')) {
+            console.log('🔔 Dismissing notification dialog...');
+            await button.click();
+            await this.wait(1000);
+            break;
+          }
         }
         
       } catch (e) {
-        console.log('ℹ️  No post-login dialogs found');
+        console.log('ℹ️  No post-login dialogs found or error handling them:', e.message);
       }
 
+      console.log('🎉 Login process completed successfully!');
       return true;
 
     } catch (error) {
       console.error('❌ Login failed:', error.message);
+      console.error('🔍 Error details:', error.stack);
       this.isLoggedIn = false;
       this.clearSession(); // Clear any partial session data
+      
+      // Don't close browser immediately - let user investigate
+      console.log('⚠️  Browser will remain open for investigation. Close manually when done.');
       throw error;
     }
   }
 
   async scrapeInstagramPage(instagramUrl) {
     try {
-      // Login first if credentials are provided
+      // Login first if credentials are provided and we're not logged in
       if (this.credentials && !this.isLoggedIn) {
         await this.login();
-      }
-
-      // Validate session if we have one (this will navigate to Instagram if needed)
-      if (this.isLoggedIn) {
-        console.log("🔍 Validating saved session...");
-        const sessionValid = await this.validateSession();
-        if (!sessionValid) {
-          console.log("⚠️  Session expired, will need to login again");
-          this.isLoggedIn = false;
-          // Clear the session
-          this.clearSession();
-          // Try to login again
-          if (this.credentials) {
-            await this.login();
-          }
-        }
       }
 
       console.log(`📱 Navigating to ${instagramUrl}...`);
@@ -710,17 +729,27 @@ class InstagramScraper {
   }
 
   async extractPosts() {
-    console.log('🔍 Extracting posts data...');
+    console.log("🔍 Extracting posts data...");
     
     return await this.page.evaluate(() => {
       const posts = [];
       
-      // Try different selectors for Instagram posts
+      // Try different selectors for Instagram posts (updated for 2025)
       const postSelectors = [
-        'article[role="presentation"]',
-        'div[class*="v1Nh3"] a',
-        'a[href*="/p/"]',
-        'div._ac7v a'
+        "a[href*=\"/p/\"]",
+        "a[href*=\"/reel/\"]",
+        "article a[href*=\"/p/\"]",
+        "article a[href*=\"/reel/\"]",
+        "[role=\"link\"][href*=\"/p/\"]",
+        "[role=\"link\"][href*=\"/reel/\"]",
+        "div[style*=\"padding-bottom\"] a[href*=\"/p/\"]",
+        "div[style*=\"padding-bottom\"] a[href*=\"/reel/\"]",
+        "article[role=\"presentation\"]",
+        "div[class*=\"v1Nh3\"] a",
+        "div._ac7v a",
+        // More comprehensive selectors
+        "div > a[href*=\"instagram.com/p/\"]",
+        "div > a[href*=\"instagram.com/reel/\"]"
       ];
       
       let postElements = [];
@@ -728,7 +757,6 @@ class InstagramScraper {
       for (const selector of postSelectors) {
         postElements = document.querySelectorAll(selector);
         if (postElements.length > 0) {
-          console.log(`Found posts using selector: ${selector}`);
           break;
         }
       }
@@ -890,12 +918,33 @@ Contact us to learn more about this piece or to place an order.
   }
 
   async close() {
-    if (this.browser) {
-      // Save session one more time before closing
-      if (this.isLoggedIn) {
-        await this.saveSession();
+    try {
+      if (this.browser) {
+        // Save session one more time before closing
+        if (this.isLoggedIn) {
+          console.log('💾 Saving final session before closing...');
+          try {
+            await this.saveSession();
+            console.log('✅ Final session saved successfully!');
+          } catch (sessionError) {
+            console.error('⚠️  Warning: Could not save final session:', sessionError.message);
+          }
+        }
+        
+        console.log('🔄 Closing browser...');
+        await this.browser.close();
+        console.log('✅ Browser closed successfully');
       }
-      await this.browser.close();
+    } catch (error) {
+      console.error('❌ Error closing browser:', error.message);
+      // Force close if normal close fails
+      try {
+        if (this.browser) {
+          await this.browser.close();
+        }
+      } catch (forceCloseError) {
+        console.error('❌ Force close also failed:', forceCloseError.message);
+      }
     }
   }
 
