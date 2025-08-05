@@ -296,7 +296,7 @@ class InstagramScraper {
         timeout: 30000
       });
       
-      await this.wait(3000);
+      await this.wait(5000); // Increased wait time for proxy
       
       // Check if we're still logged in
       const isStillLoggedIn = await this.checkLoginStatus();
@@ -321,28 +321,91 @@ class InstagramScraper {
 
   async checkLoginStatus() {
     try {
-      // Check for login indicators
+      // Wait a moment for page to stabilize
+      await this.wait(2000);
+      
+      const currentUrl = this.page.url();
+      console.log(`🔍 Checking login status on URL: ${currentUrl}`);
+      
+      // First check if we're on a login-related page
+      if (currentUrl.includes('/accounts/login/') || 
+          currentUrl.includes('/accounts/emailsignup/') ||
+          currentUrl.includes('/accounts/signup/')) {
+        console.log('❌ Currently on login page - not logged in');
+        return false;
+      }
+      
+      // Check for login indicators with more comprehensive selectors
       const loginIndicators = [
-        () => this.page.url().includes('instagram.com') && !this.page.url().includes('/accounts/login/'),
+        // Navigation-based checks
         async () => await this.page.$('svg[aria-label="Home"]') !== null,
+        async () => await this.page.$('a[aria-label="Home"]') !== null,
         async () => await this.page.$('a[href="/"]') !== null,
         async () => await this.page.$('input[placeholder*="Search"]') !== null,
-        async () => await this.page.$('nav[role="navigation"]') !== null
+        async () => await this.page.$('nav[role="navigation"]') !== null,
+        async () => await this.page.$('[data-testid="new-post-button"]') !== null,
+        
+        // Profile/user indicators
+        async () => await this.page.$('button[aria-label*="Profile"]') !== null,
+        async () => await this.page.$('a[href*="/accounts/edit/"]') !== null,
+        async () => await this.page.$('svg[aria-label*="Profile"]') !== null,
+        
+        // Content indicators
+        async () => await this.page.$('main[role="main"]') !== null,
+        async () => await this.page.$('section') !== null,
+        
+        // Check for user menu or logout option
+        async () => {
+          const buttons = await this.page.$$('button');
+          for (const button of buttons) {
+            const text = await this.page.evaluate(el => el.textContent?.trim().toLowerCase(), button);
+            if (text && (text.includes('log out') || text.includes('logout'))) {
+              return true;
+            }
+          }
+          return false;
+        }
       ];
       
+      // Check each indicator
       for (const check of loginIndicators) {
         try {
           const result = await check();
           if (result) {
+            console.log('✅ Login indicator found - user is logged in');
             return true;
           }
         } catch (e) {
+          // Continue to next check
           continue;
         }
       }
       
+      // Additional check: look for typical logged-in page elements
+      const hasLoggedInContent = await this.page.evaluate(() => {
+        // Check for typical Instagram logged-in page patterns
+        const indicators = [
+          document.querySelector('main'),
+          document.querySelector('nav'),
+          document.querySelector('[role="navigation"]'),
+          document.querySelector('header'),
+          // Check for Instagram's typical class patterns (these change frequently)
+          document.querySelector('div[id="mount_0_0"]'),
+          document.querySelector('section')
+        ];
+        
+        return indicators.some(el => el !== null);
+      });
+      
+      if (hasLoggedInContent) {
+        console.log('✅ Logged-in content structure detected');
+        return true;
+      }
+      
+      console.log('❌ No login indicators found');
       return false;
     } catch (error) {
+      console.log('⚠️  Error checking login status:', error.message);
       return false;
     }
   }
@@ -369,12 +432,16 @@ class InstagramScraper {
 
   async init() {
     console.log('🚀 Starting Instagram scraper...');
+    console.log('🌐 Using proxy: localhost:10808');
     
     try {
       this.browser = await puppeteer.launch({
         headless: false, // Keep visible to appear more human
         defaultViewport: null,
         args: [
+          // Proxy configuration
+          '--proxy-server=localhost:10808',
+          
           // Basic security
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -668,8 +735,31 @@ class InstagramScraper {
         timeout: 30000 
       });
 
-      // Wait for page to load
-      await this.wait(3000);
+      // Wait for page to load (increased for proxy)
+      await this.wait(5000);
+
+      // Check current URL to see if we got redirected to login
+      const currentUrl = this.page.url();
+      console.log(`🔍 Current URL: ${currentUrl}`);
+      
+      if (currentUrl.includes('/accounts/login/')) {
+        console.log('🔄 Redirected to login page, session may have expired');
+        this.isLoggedIn = false;
+        this.clearSession();
+        
+        if (this.credentials) {
+          console.log('🔐 Attempting login...');
+          await this.login();
+          // Navigate to target page again after login
+          await this.page.goto(instagramUrl, { 
+            waitUntil: 'networkidle2',
+            timeout: 30000 
+          });
+          await this.wait(3000);
+        } else {
+          throw new Error('Session expired and no login credentials provided');
+        }
+      }
 
       // Check if we're on a private account page that requires login
       const isPrivatePage = await this.page.evaluate(() => {
@@ -684,6 +774,9 @@ class InstagramScraper {
       // Check if we need to accept cookies
       await this.handleCookieConsent();
 
+      // Extract profile information first
+      const profileInfo = await this.extractProfileInfo();
+      
       // Add human-like behavior before scrolling
       await this.addHumanBehavior();
 
@@ -697,7 +790,19 @@ class InstagramScraper {
       const posts = await this.extractPosts();
       
       console.log(`✅ Found ${posts.length} posts`);
-      return posts;
+      
+      // Download profile image if available
+      let profileImageFile = null;
+      if (profileInfo && profileInfo.profileImageUrl) {
+        profileImageFile = await this.downloadProfileImage(profileInfo);
+        profileInfo.profileImageFile = profileImageFile;
+      }
+      
+      // Return both posts and profile info
+      return {
+        posts: posts,
+        profile: profileInfo
+      };
 
     } catch (error) {
       console.error('❌ Error scraping Instagram page:', error);
@@ -805,6 +910,124 @@ class InstagramScraper {
     });
   }
 
+  async extractProfileInfo() {
+    console.log("🔍 Extracting profile information...");
+    
+    return await this.page.evaluate(() => {
+      const profileInfo = {
+        profileImageUrl: null,
+        username: null,
+        displayName: null,
+        bio: null,
+        followersCount: null,
+        followingCount: null,
+        postsCount: null
+      };
+      
+      // Try different selectors for profile image
+      const profileImageSelectors = [
+        'img[data-testid="user-avatar"]',
+        'img[alt*="profile picture"]',
+        'img[alt*="Profile picture"]',
+        'header img',
+        'div[role="img"] img',
+        'img[style*="border-radius"]',
+        // More specific selectors for profile images
+        'img[src*="profile"]',
+        'img[src*="avatar"]',
+        // Look for images in header or profile section
+        'main header img',
+        'section header img',
+        '[role="main"] header img'
+      ];
+      
+      for (const selector of profileImageSelectors) {
+        const img = document.querySelector(selector);
+        if (img && img.src) {
+          // Check if this looks like a profile image (usually square and reasonable size)
+          const isLikelyProfileImage = img.src.includes('profile') || 
+                                     img.src.includes('avatar') ||
+                                     img.alt?.toLowerCase().includes('profile') ||
+                                     (img.width > 50 && img.width < 300);
+          
+          if (isLikelyProfileImage) {
+            profileInfo.profileImageUrl = img.src;
+            break;
+          }
+        }
+      }
+      
+      // Extract username from URL or page
+      const currentUrl = window.location.href;
+      const usernameMatch = currentUrl.match(/instagram\.com\/([^\/\?]+)/);
+      if (usernameMatch) {
+        profileInfo.username = usernameMatch[1];
+      }
+      
+      // Try to get display name
+      const displayNameSelectors = [
+        'h2',
+        'h1',
+        '[data-testid="user-name"]',
+        'header h1',
+        'header h2'
+      ];
+      
+      for (const selector of displayNameSelectors) {
+        const element = document.querySelector(selector);
+        if (element && element.textContent?.trim()) {
+          const text = element.textContent.trim();
+          // Skip if it looks like stats or other content
+          if (!text.includes('posts') && !text.includes('followers') && text.length < 50) {
+            profileInfo.displayName = text;
+            break;
+          }
+        }
+      }
+      
+      // Try to get bio
+      const bioSelectors = [
+        '[data-testid="user-bio"]',
+        'header div:last-child',
+        'main header div span',
+        'section div span'
+      ];
+      
+      for (const selector of bioSelectors) {
+        const element = document.querySelector(selector);
+        if (element && element.textContent?.trim()) {
+          const text = element.textContent.trim();
+          // Skip if it's clearly not a bio
+          if (!text.includes('posts') && !text.includes('followers') && text.length > 10) {
+            profileInfo.bio = text;
+            break;
+          }
+        }
+      }
+      
+      // Try to extract stats (followers, following, posts)
+      const statsElements = document.querySelectorAll('a, span, div');
+      statsElements.forEach(element => {
+        const text = element.textContent?.toLowerCase() || '';
+        if (text.includes('followers') || text.includes('following') || text.includes('posts')) {
+          const numberMatch = text.match(/[\d,]+/);
+          if (numberMatch) {
+            const number = numberMatch[0].replace(/,/g, '');
+            if (text.includes('followers')) {
+              profileInfo.followersCount = number;
+            } else if (text.includes('following')) {
+              profileInfo.followingCount = number;
+            } else if (text.includes('posts')) {
+              profileInfo.postsCount = number;
+            }
+          }
+        }
+      });
+      
+      return profileInfo;
+    });
+  }
+
   async downloadImage(imageUrl, filename) {
     try {
       console.log(`📥 Downloading image: ${filename}`);
@@ -817,6 +1040,49 @@ class InstagramScraper {
       return filename;
     } catch (error) {
       console.error(`❌ Error downloading image ${filename}:`, error);
+      return null;
+    }
+  }
+
+  getImageExtension(imageUrl) {
+    // Extract extension from URL
+    const urlParts = imageUrl.split('?')[0]; // Remove query parameters
+    const extension = urlParts.split('.').pop().toLowerCase();
+    
+    // Default to common formats
+    if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension)) {
+      return `.${extension}`;
+    }
+    
+    // Default to .jpg if unclear
+    return '.jpg';
+  }
+
+  async downloadProfileImage(profileInfo) {
+    if (!profileInfo.profileImageUrl) {
+      console.log("⚠️ No profile image URL found");
+      return null;
+    }
+
+    try {
+      console.log("📥 Downloading profile image...");
+      
+      // Generate filename for profile image
+      const username = profileInfo.username || "profile";
+      const extension = this.getImageExtension(profileInfo.profileImageUrl);
+      const fileName = `${username}-profile${extension}`;
+      
+      const success = await this.downloadImage(profileInfo.profileImageUrl, fileName);
+      
+      if (success) {
+        console.log(`✅ Profile image downloaded: ${fileName}`);
+        return fileName;
+      } else {
+        console.error("❌ Failed to download profile image");
+        return null;
+      }
+    } catch (error) {
+      console.error("❌ Error downloading profile image:", error.message);
       return null;
     }
   }
@@ -866,6 +1132,44 @@ Contact us to learn more about this piece or to place an order.
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim();
+  }
+
+  async saveProfileInfo(profileInfo) {
+    if (!profileInfo) {
+      console.log("⚠️ No profile info to save");
+      return;
+    }
+
+    try {
+      console.log("💾 Saving profile information...");
+      
+      // Save profile info as JSON for Hugo data
+      const dataDir = path.join(this.outputDir, "..", "data");
+      this.ensureDirectoryExists(dataDir);
+      
+      const profileData = {
+        username: profileInfo.username,
+        displayName: profileInfo.displayName,
+        bio: profileInfo.bio,
+        profileImage: profileInfo.profileImageFile ? `/img/products/${profileInfo.profileImageFile}` : null,
+        stats: {
+          posts: profileInfo.postsCount,
+          followers: profileInfo.followersCount,
+          following: profileInfo.followingCount
+        },
+        lastUpdated: new Date().toISOString()
+      };
+      
+      const profilePath = path.join(dataDir, "instagram-profile.json");
+      fs.writeFileSync(profilePath, JSON.stringify(profileData, null, 2));
+      
+      console.log(`✅ Profile information saved to: ${profilePath}`);
+      
+      return profilePath;
+    } catch (error) {
+      console.error("❌ Error saving profile info:", error.message);
+      return null;
+    }
   }
 
   async processPostsAsProducts(posts) {
@@ -967,7 +1271,14 @@ Contact us to learn more about this piece or to place an order.
       await this.init();
       
       // Scrape Instagram page
-      const posts = await this.scrapeInstagramPage(instagramUrl);
+      const scrapedData = await this.scrapeInstagramPage(instagramUrl);
+      const posts = scrapedData.posts;
+      const profile = scrapedData.profile;
+      
+      // Save profile information
+      if (profile) {
+        await this.saveProfileInfo(profile);
+      }
       
       // Limit posts if specified
       const postsToProcess = posts.slice(0, maxPosts);
@@ -982,6 +1293,11 @@ Contact us to learn more about this piece or to place an order.
       console.log('\n📊 SUMMARY:');
       console.log(`✅ Successfully created: ${successful.length} products`);
       console.log(`❌ Failed: ${failed.length} posts`);
+      
+      if (profile) {
+        console.log(`👤 Profile: ${profile.username || 'Unknown'}`);
+        console.log(`🖼️ Profile image: ${profile.profileImageFile ? 'Downloaded' : 'Not found'}`);
+      }
       
       if (failed.length > 0) {
         console.log('\n❌ Failed posts:');
