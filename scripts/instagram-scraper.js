@@ -730,13 +730,22 @@ class InstagramScraper {
 
       console.log(`📱 Navigating to ${instagramUrl}...`);
       
-      await this.page.goto(instagramUrl, { 
-        waitUntil: 'networkidle2',
-        timeout: 30000 
-      });
+      // Increased timeout for proxy connections and better error handling
+      try {
+        await this.page.goto(instagramUrl, { 
+          waitUntil: 'networkidle0',
+          timeout: 90000 // Increased to 90 seconds for proxy
+        });
+      } catch (timeoutError) {
+        console.log('⚠️ Navigation timeout, trying with domcontentloaded...');
+        await this.page.goto(instagramUrl, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 60000 // 60 seconds fallback
+        });
+      }
 
       // Wait for page to load (increased for proxy)
-      await this.wait(5000);
+      await this.wait(8000);
 
       // Check current URL to see if we got redirected to login
       const currentUrl = this.page.url();
@@ -813,24 +822,100 @@ class InstagramScraper {
   async autoScroll() {
     console.log('📜 Scrolling to load more posts...');
     
-    await this.page.evaluate(async () => {
-      await new Promise((resolve) => {
-        let totalHeight = 0;
-        const distance = 100;
-        const timer = setInterval(() => {
-          const scrollHeight = document.body.scrollHeight;
-          window.scrollBy(0, distance);
-          totalHeight += distance;
-
-          if (totalHeight >= scrollHeight - window.innerHeight) {
-            clearInterval(timer);
-            resolve();
+    let previousPostCount = 0;
+    let stableCount = 0;
+    const maxScrollAttempts = 15; // Increased from 10 to 15
+    
+    for (let attempt = 0; attempt < maxScrollAttempts; attempt++) {
+      console.log(`📜 Scroll attempt ${attempt + 1}/${maxScrollAttempts}`);
+      
+      // Get current post count
+      const currentPostCount = await this.page.evaluate(() => {
+        const postSelectors = [
+          "a[href*=\"/p/\"]",
+          "a[href*=\"/reel/\"]",
+          "article a[href*=\"/p/\"]",
+          "article a[href*=\"/reel/\"]"
+        ];
+        
+        let totalPosts = 0;
+        for (const selector of postSelectors) {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > totalPosts) {
+            totalPosts = elements.length;
           }
-        }, 100);
+        }
+        return totalPosts;
       });
+      
+      console.log(`📊 Found ${currentPostCount} posts so far`);
+      
+      // Check if we found new posts
+      if (currentPostCount === previousPostCount) {
+        stableCount++;
+        console.log(`⏸️ No new posts found (stable count: ${stableCount})`);
+        
+        // If no new posts for 2 attempts (reduced from 3), we're probably done
+        if (stableCount >= 2) {
+          console.log('✅ No more posts to load, stopping scroll');
+          break;
+        }
+      } else {
+        stableCount = 0; // Reset stable count if we found new posts
+        console.log(`📈 Found ${currentPostCount - previousPostCount} new posts`);
+      }
+      
+      previousPostCount = currentPostCount;
+      
+      // Perform more aggressive scrolling
+      await this.page.evaluate(async () => {
+        // Scroll to bottom in multiple steps with faster intervals
+        const scrollSteps = 8; // Increased from 5
+        const scrollHeight = document.body.scrollHeight;
+        const stepSize = scrollHeight / scrollSteps;
+        
+        for (let i = 0; i < scrollSteps; i++) {
+          window.scrollTo(0, stepSize * (i + 1));
+          await new Promise(resolve => setTimeout(resolve, 300)); // Reduced from 500ms
+        }
+        
+        // Final scroll to absolute bottom
+        window.scrollTo(0, document.body.scrollHeight);
+        
+        // Scroll back up a bit and down again to trigger loading
+        window.scrollTo(0, document.body.scrollHeight - 500);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+      
+      // Wait for new posts to load
+      console.log('⏳ Waiting for new posts to load...');
+      await this.wait(4000); // Increased wait time
+      
+      // Add some human behavior during scrolling
+      await this.addHumanBehavior();
+    }
+    
+    // Final check for posts
+    const finalPostCount = await this.page.evaluate(() => {
+      const postSelectors = [
+        "a[href*=\"/p/\"]",
+        "a[href*=\"/reel/\"]",
+        "article a[href*=\"/p/\"]",
+        "article a[href*=\"/reel/\"]"
+      ];
+      
+      let totalPosts = 0;
+      for (const selector of postSelectors) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > totalPosts) {
+          totalPosts = elements.length;
+        }
+      }
+      return totalPosts;
     });
-
-    await this.wait(2000);
+    
+    console.log(`📊 Final post count after scrolling: ${finalPostCount}`);
   }
 
   async extractPosts() {
@@ -838,75 +923,136 @@ class InstagramScraper {
     
     return await this.page.evaluate(() => {
       const posts = [];
+      const seenUrls = new Set(); // Track unique posts
       
-      // Try different selectors for Instagram posts (updated for 2025)
+      // Comprehensive selectors for Instagram posts (updated for 2025)
       const postSelectors = [
+        // Standard post selectors
         "a[href*=\"/p/\"]",
         "a[href*=\"/reel/\"]",
+        
+        // Article-based selectors
         "article a[href*=\"/p/\"]",
         "article a[href*=\"/reel/\"]",
+        
+        // Role-based selectors
         "[role=\"link\"][href*=\"/p/\"]",
         "[role=\"link\"][href*=\"/reel/\"]",
+        
+        // More specific selectors
         "div[style*=\"padding-bottom\"] a[href*=\"/p/\"]",
         "div[style*=\"padding-bottom\"] a[href*=\"/reel/\"]",
-        "article[role=\"presentation\"]",
+        
+        // Class-based selectors (Instagram's class names change frequently)
+        "article[role=\"presentation\"] a",
         "div[class*=\"v1Nh3\"] a",
         "div._ac7v a",
-        // More comprehensive selectors
+        
+        // Broad selectors as fallback
         "div > a[href*=\"instagram.com/p/\"]",
-        "div > a[href*=\"instagram.com/reel/\"]"
+        "div > a[href*=\"instagram.com/reel/\"]",
+        
+        // Additional fallback selectors
+        "a[href*=\"/tv/\"]", // IGTV posts
+        "*[href*=\"/p/\"]", // Any element with post href
+        "*[href*=\"/reel/\"]" // Any element with reel href
       ];
       
-      let postElements = [];
+      console.log("🔍 Trying multiple selectors to find posts...");
       
+      // Try each selector and collect all unique posts
       for (const selector of postSelectors) {
-        postElements = document.querySelectorAll(selector);
-        if (postElements.length > 0) {
-          break;
+        try {
+          const elements = document.querySelectorAll(selector);
+          console.log(`📊 Selector "${selector}" found ${elements.length} elements`);
+          
+          elements.forEach((element, index) => {
+            try {
+              let postUrl = '';
+              let imageUrl = '';
+              let description = '';
+              
+              // Get post URL
+              if (element.tagName === 'A') {
+                postUrl = element.href;
+              } else {
+                const linkElement = element.querySelector('a[href*="/p/"], a[href*="/reel/"], a[href*="/tv/"]');
+                postUrl = linkElement ? linkElement.href : '';
+              }
+              
+              // Skip if we've already seen this URL
+              if (!postUrl || seenUrls.has(postUrl)) {
+                return;
+              }
+              
+              // Get image URL - try multiple methods
+              let imgElement = element.querySelector('img');
+              if (!imgElement && element.tagName === 'A') {
+                // Look for images in parent or sibling elements
+                imgElement = element.parentElement?.querySelector('img') || 
+                           element.closest('article')?.querySelector('img') ||
+                           element.closest('div')?.querySelector('img');
+              }
+              
+              if (imgElement) {
+                imageUrl = imgElement.src || imgElement.dataset.src || imgElement.getAttribute('src');
+                description = imgElement.alt || imgElement.getAttribute('alt') || '';
+              }
+              
+              // Extract post ID from URL - handle multiple formats
+              let postId = '';
+              const postIdMatches = [
+                postUrl.match(/\/p\/([^\/\?]+)/),
+                postUrl.match(/\/reel\/([^\/\?]+)/),
+                postUrl.match(/\/tv\/([^\/\?]+)/)
+              ];
+              
+              for (const match of postIdMatches) {
+                if (match && match[1]) {
+                  postId = match[1];
+                  break;
+                }
+              }
+              
+              if (!postId) {
+                postId = `post-${Date.now()}-${index}`;
+              }
+              
+              // Only add if we have essential data
+              if (postUrl && imageUrl) {
+                seenUrls.add(postUrl);
+                posts.push({
+                  id: postId,
+                  url: postUrl,
+                  imageUrl: imageUrl,
+                  description: description,
+                  title: `Instagram Post ${postId}`,
+                  date: new Date().toISOString().split('T')[0]
+                });
+              }
+            } catch (error) {
+              console.error('Error extracting individual post:', error);
+            }
+          });
+        } catch (error) {
+          console.error(`Error with selector "${selector}":`, error);
         }
       }
-
-      postElements.forEach((element, index) => {
-        try {
-          let postUrl = '';
-          let imageUrl = '';
-          let description = '';
-          
-          // Get post URL
-          if (element.tagName === 'A') {
-            postUrl = element.href;
-          } else {
-            const linkElement = element.querySelector('a[href*="/p/"]');
-            postUrl = linkElement ? linkElement.href : '';
-          }
-          
-          // Get image URL
-          const imgElement = element.querySelector('img');
-          if (imgElement) {
-            imageUrl = imgElement.src || imgElement.dataset.src;
-            description = imgElement.alt || '';
-          }
-          
-          // Get post ID from URL
-          const postIdMatch = postUrl.match(/\/p\/([^\/]+)/);
-          const postId = postIdMatch ? postIdMatch[1] : `post-${index}`;
-          
-          if (postUrl && imageUrl) {
-            posts.push({
-              id: postId,
-              url: postUrl,
-              imageUrl: imageUrl,
-              description: description,
-              title: `Instagram Post ${postId}`,
-              date: new Date().toISOString().split('T')[0]
-            });
-          }
-        } catch (error) {
-          console.error('Error extracting post:', error);
-        }
-      });
       
-      return posts;
+      // Remove duplicates based on post ID
+      const uniquePosts = [];
+      const seenIds = new Set();
+      
+      for (const post of posts) {
+        if (!seenIds.has(post.id)) {
+          seenIds.add(post.id);
+          uniquePosts.push(post);
+        }
+      }
+      
+      console.log(`🎯 Found ${uniquePosts.length} unique posts out of ${posts.length} total matches`);
+      
+      return uniquePosts;
     });
   }
 
