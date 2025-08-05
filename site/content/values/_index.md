@@ -1,45 +1,21 @@
 ---
-title: "Values"
+title: "درباره ما"
 image: /img/about-jumbotron.jpg
 values:
-  - heading: "Shade-grown coffee"
+  - heading: "کیفیت بی‌نظیر"
     text: >
-      Coffee is a small tree or shrub that grows in the forest
-      understory in its wild form, and traditionally was grown
-      commercially under other trees that provided shade. The
-      forest-like structure of shade coffee farms provides habitat for
-      a great number of migratory and resident species.
+      ما در جواهرات ایمان معتقدیم که کیفیت از همه چیز مهم‌تر است. تمام جواهرات ما با بهترین متریال‌ها و توسط ماهرترین صنعتگران ساخته می‌شوند. هر قطعه قبل از عرضه کنترل کیفیت دقیقی می‌بیند.
     imageUrl: "/img/about-shade-grown.jpg"
-  - heading: "Single origin"
+  - heading: "طراحی منحصربه‌فرد"
     text: >
-      Single-origin coffee is coffee grown within a single known
-      geographic origin. Sometimes, this is a single farm or a
-      specific collection of beans from a single country. The name of
-      the coffee is then usually the place it was grown to whatever
-      degree available.
+      هر قطعه جواهرات ما داستانی منحصربه‌فرد دارد. طراحان ما با الهام از فرهنگ ایرانی و هنر مدرن، آثاری می‌آفرینند که هم زیبا هستند و هم معنادار. ما همچنین خدمات طراحی اختصاصی ارائه می‌دهیم.
     imageUrl: "/img/about-single-origin.jpg"
-  - heading: "Sustainable farming"
+  - heading: "مسئولیت اجتماعی"
     text: >
-      Sustainable agriculture is farming in sustainable ways based on
-      an understanding of ecosystem services, the study of
-      relationships between organisms and their environment. What
-      grows where and how it is grown are a matter of choice and
-      careful consideration for nature and communities.
+      ما معتقدیم که کسب‌وکار باید تأثیر مثبتی بر جامعه داشته باشد. بخشی از درآمد ما صرف حمایت از هنرمندان جوان و ایجاد فرصت‌های شغلی برای جوانان علاقه‌مند به هنر طلاسازی می‌شود.
     imageUrl: "/img/about-sustainable-farming.jpg"
-  - heading: "Direct sourcing"
+  - heading: "خدمات پس از فروش"
     text: >
-      We want to truly empower the communities that bring amazing
-      coffee to you. That’s why we reinvest 20% of our profits into
-      farms, local businesses and schools everywhere our coffee is
-      grown. You can see the communities grow and learn more about
-      coffee farming on our blog.
+      رابطه ما با مشتریان بعد از خرید تمام نمی‌شود. ما خدمات تعمیر، نگهداری و اندازه‌گیری مجدد ارائه می‌دهیم. همچنین گارانتی کیفیت بر تمام محصولاتمان اعمال می‌شود.
     imageUrl: "/img/about-direct-sourcing.jpg"
-  - heading: "Reinvest profits"
-    text: >
-      We want to truly empower the communities that bring amazing
-      coffee to you. That’s why we reinvest 20% of our profits into
-      farms, local businesses and schools everywhere our coffee is
-      grown. You can see the communities grow and learn more about
-      coffee farming on our blog.
-    imageUrl: "/img/about-reinvest-profits.jpg"
 ---

@@ -1,0 +1,44 @@
+{{ define "main" }}
+
+<div class="ph3 bg-grey-1">
+  <div class="center mw6 pv3">
+
+    <img src="{{ .Params.image }}" alt="" class="w-100 mb3">
+
+    <div class="cms mw6 persian-text">
+      <h1 class="f2 lh-title b mb3 mt0 pt3 bt bw2 white">{{ .Title }}</h1>
+      <div class="cms">
+          {{ if .Params.subtitle }}<p class="f4 f3-m f2-l grey-3">{{ .Params.subtitle }}</p>{{ end }}
+          <div class="grey-3 lh-copy">{{ .Content }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ph3 bg-grey-2">
+  <div class="mw7 center">
+    <div class="pv4">
+
+      {{ range (.Paginator 4).Pages.ByPublishDate.Reverse }}
+          <div class="flex-l mhn1-l ph3 center mw7 mb4 jewelry-card">
+            <div class="w-40-l ph2-l">
+              <img src="{{ .Params.image }}" alt="" class="w-100 db mb3 br3">
+            </div>
+
+            <div class="w-60-l ph2-l persian-text">
+              <h2 class="f3 b lh-title mb1 primary">{{ .Title }}</h2>
+              <p class="f6 f5-l lh-copy grey-4">{{ .Date.Format "Jan 2, 2006" }}</p>
+              <p class="fw7 f5 f4-l lh-copy primary mb3">{{ .Params.description }}</p>
+              <p class="f6 lh-copy mv0 grey-3">{{ if .Truncated }}{{ .Summary }}{{ else }}{{ .Content }}{{ end }}</p>
+              <a href="{{ .Permalink }}" class="btn mt3 dib">ادامه مطلب</a>
+            </div>
+          </div>
+      {{ end }}
+    </div>
+
+    {{ partial "pagination" . }}
+
+  </div>
+</div>
+
+{{end}}

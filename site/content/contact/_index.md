@@ -1,19 +1,19 @@
 ---
-title: "Contact"
+title: "تماس با ما"
 logo: "/img/logo.svg"
 contact_entries:
-  - heading: Location
-    text: "3153 Lynn Avenue, South San Francisco, California 94080"
-  - heading: Working hours
-    text: "Monday – Saturday: 9AM – 7PM We’re closed on Sundays"
+  - heading: آدرس
+    text: "تهران، خیابان ولیعصر، نرسیده به پارک ملت، پلاک ۱۲۳۴"
+  - heading: ساعات کاری
+    text: "شنبه تا پنج‌شنبه: ۹ صبح تا ۸ شب - جمعه‌ها تعطیل هستیم"
+  - heading: تلفن
+    text: "۰۲۱-۱۲۳۴۵۶۷۸"
+  - heading: ایمیل
+    text: "info@iman-jewelry.ir"
 ---
 
-We’d love to get in touch with you and hear your ideas and
-questions. We strive to grow and improve constantly and your feedback
-is valuable for us.
+ما خوشحال می‌شویم که با شما در ارتباط باشیم و نظرات و سوالاتتان را بشنویم. ما همیشه در تلاش هستیم تا بهتر شویم و بازخوردهای شما برای ما بسیار ارزشمند است.
 
-<h3 class="f4 b lh-title mb2">How can I get…?</h3>
+<h3 class="f4 b lh-title mb2 persian-text">چطور می‌توانم...؟</h3>
 
-You can also use the form below for any inquiries about coffee
-availability, monthly subscriptions and scheduling a 1-on-1 session
-with our baristas. Don’t be shy, drop us a line!
+شما همچنین می‌توانید از فرم زیر برای پرسش درباره موجودی جواهرات، سفارش طراحی اختصاصی و هماهنگی برای مشاوره حضوری استفاده کنید. تعارف نکنید، با ما در ارتباط باشید!

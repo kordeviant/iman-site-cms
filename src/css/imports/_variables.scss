@@ -1,17 +1,17 @@
 :root {
-	/* Colors */
-	--primary: rgba(255, 68, 0, 1);
-	--highlight: rgba(254, 213, 198, 1);
+	/* Colors - Dark Jewelry Theme */
+	--primary: rgba(218, 165, 32, 1); /* Elegant gold */
+	--highlight: rgba(255, 215, 0, 1); /* Bright gold accent */
 	--white: rgba(255, 255, 255, 1);
-	--off-white: rgba(255, 253, 252, 1);
-	--grey-1: rgba(245, 243, 242, 1);
-	--grey-2: rgba(235, 231, 230, 1);
-	--grey-3: rgba(89, 87, 86, 1);
-	--grey-4: rgba(66, 64, 64, 1);
-	--black: rgba(43, 37, 35, 1);
+	--off-white: rgba(248, 248, 248, 1);
+	--grey-1: rgba(45, 45, 45, 1); /* Dark background */
+	--grey-2: rgba(60, 60, 60, 1); /* Medium dark */
+	--grey-3: rgba(180, 180, 180, 1); /* Light text on dark */
+	--grey-4: rgba(120, 120, 120, 1); /* Medium text */
+	--black: rgba(20, 20, 20, 1); /* Deep black */
 
 	/* Typography */
-	--font-family: Nunito Sans, -apple-system, BlinkMacSystemFont, 'avenir next', avenir, helvetica, 'helvetica neue', ubuntu, roboto, noto, 'segoe ui', arial, sans-serif;
+	--font-family: 'Vazirmatn', 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'avenir next', avenir, helvetica, 'helvetica neue', ubuntu, roboto, noto, 'segoe ui', arial, sans-serif;
 	--line-height: 1.5;
 
 	--font-size: 18px;

@@ -1,20 +1,20 @@
 ---
-title: "Great coffee with a conscience"
-subtitle: Support sustainable farming while enjoying a cup
+title: "جواهرات زیبا با کیفیت بی‌نظیر"
+subtitle: زیبایی و اصالت در هر قطعه
 image: /img/home-jumbotron.jpg
 blurb:
-    heading: Why Kaldi?
-    text: "Kaldi is the coffee store for everyone who believes that great coffee shouldn't just taste good, it should do good too. We source all of our beans directly from small scale sustainable farmers and make sure part of the profits are reinvested in their communities."
+    heading: چرا جواهرات ایمان؟
+    text: "جواهرات ایمان مجموعه‌ای است برای کسانی که عاشق زیبایی و کیفیت هستند. ما تمام طراحی‌هایمان را با دقت و ظرافت خاص انجام می‌دهیم و مطمئن هستیم که هر قطعه داستانی منحصربه‌فرد دارد."
 intro:
-    heading: "What we offer"
-    text: "Kaldi is the ultimate spot for coffee lovers who want to learn about their java’s origin and support the farmers that grew it. We take coffee production, roasting and brewing seriously and we’re glad to pass that knowledge to anyone."
+    heading: "ما چه ارائه می‌دهیم"
+    text: "جواهرات ایمان مکانی است برای عاشقان جواهرات که می‌خواهند کیفیت و زیبایی را در کنار هم تجربه کنند. ما طراحی، ساخت و فروش جواهرات را جدی می‌گیریم."
 products:
     - image: img/illustrations-coffee.svg
-      text: "We sell green and roasted coffee beans that are sourced directly from independent farmers and farm cooperatives. We’re proud to offer a variety of coffee beans grown with great care for the environment and local communities. Check our post or contact us directly for current availability."
+      text: "ما انگشترها، گردنبندها، دستبندها و گوشواره‌های زیبایی ارائه می‌دهیم که با دستان ماهر طراحان ما ساخته شده‌اند. مجموعه‌ای متنوع از طلا، نقره و سنگ‌های قیمتی برای هر سلیقه‌ای."
     - image: /img/illustrations-coffee-gear.svg
-      text: "We offer a small, but carefully curated selection of brewing gear and tools for every taste and experience level. No matter if you roast your own beans or just bought your first french press, you’ll find a gadget to fall in love with in our shop."
+      text: "علاوه بر جواهرات آماده، ما خدمات طراحی اختصاصی نیز ارائه می‌دهیم. هر ایده‌ای که دارید را می‌توانیم به واقعیت تبدیل کنیم و قطعه‌ای منحصربه‌فرد برای شما بسازیم."
 values:
-    heading: Our values
-    text: Coffee is an amazing part of human culture but it has a dark side too – one of colonialism and mindless abuse of natural resources and human lives. We want to turn this around and return the coffee trade to the drink’s exhilarating, empowering and unifying nature.
+    heading: ارزش‌های ما
+    text: جواهرات نه تنها زیبایی است بلکه نمادی از عشق، خاطرات و لحظات ویژه زندگی است. ما باور داریم که هر قطعه جواهر باید داستانی داشته باشد و ارزشی فراتر از ظاهرش داشته باشد.
 ---
 

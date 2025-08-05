@@ -19,7 +19,11 @@
     "build:hugo:preview": "npm run build:hugo -- -D -F",
     "build:webpack": "cross-env NODE_ENV=production webpack --config webpack.prod.js",
     "cypress:open": "cypress open --e2e",
-    "cypress:run": "cypress run --e2e"
+    "cypress:run": "cypress run --e2e",
+    "scrape:instagram": "node scripts/instagram-scraper.js",
+    "scrape:example": "node scripts/example.js",
+    "scrape:interactive": "node scripts/interactive.js",
+    "scrape:test": "node scripts/test-chrome.js"
   },
   "author": "",
   "license": "MIT",
@@ -69,6 +73,9 @@
     "decap-cms-app": "^3.0.2",
     "immutable": "^4.1.0",
     "netlify-plugin-cypress": "^2.2.1",
+    "puppeteer": "^24.15.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "to-string-loader": "^1.2.0"

@@ -1,0 +1,247 @@
+/* Dark Jewelry Theme Styles */
+
+/* Body and main containers */
+body {
+  background-color: var(--grey-1) !important;
+  color: var(--grey-3) !important;
+}
+
+/* Navigation improvements */
+nav {
+  background-color: var(--black) !important;
+  border-bottom: 1px solid var(--grey-2);
+}
+
+nav a {
+  color: var(--grey-3) !important;
+  transition: var(--hover-transition);
+}
+
+nav a:hover {
+  color: var(--primary) !important;
+}
+
+/* Content sections */
+.bg-white {
+  background-color: var(--grey-1) !important;
+}
+
+.bg-off-white {
+  background-color: var(--grey-2) !important;
+}
+
+/* Typography improvements for Persian */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--white) !important;
+  font-weight: 700;
+}
+
+p {
+  color: var(--grey-3) !important;
+  line-height: 1.8;
+}
+
+/* Buttons and interactive elements */
+.btn {
+  background-color: var(--primary);
+  color: var(--black);
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--border-radius);
+  font-weight: 700;
+  transition: var(--hover-transition);
+  text-decoration: none !important;
+}
+
+.btn:hover {
+  background-color: var(--highlight);
+  color: var(--black);
+}
+
+/* Card and section styling */
+.card {
+  background-color: var(--grey-2);
+  border: 1px solid var(--grey-3);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-large);
+  margin-bottom: var(--spacing-large);
+}
+
+/* RTL specific adjustments */
+[dir="rtl"] .flex-l {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .mr4 {
+  margin-right: 0;
+  margin-left: var(--spacing-large);
+}
+
+[dir="rtl"] .ml4 {
+  margin-left: 0;
+  margin-right: var(--spacing-large);
+}
+
+/* Form styling */
+input, textarea, select {
+  background-color: var(--grey-2);
+  color: var(--white);
+  border: 1px solid var(--grey-3);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-medium);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Footer styling */
+footer {
+  background-color: var(--black) !important;
+  color: var(--grey-3) !important;
+}
+
+footer a {
+  color: var(--grey-3) !important;
+}
+
+footer a:hover {
+  color: var(--primary) !important;
+}
+
+/* Jumbotron styling */
+.bg-center {
+  position: relative;
+}
+
+.bg-center::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(20, 20, 20, 0.6);
+  z-index: 1;
+}
+
+.bg-center > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Text styling improvements */
+.highlight {
+  color: var(--primary) !important;
+}
+
+.white {
+  color: var(--white) !important;
+}
+
+.grey-3 {
+  color: var(--grey-3) !important;
+}
+
+/* Media queries for responsive Persian text */
+@media screen and (max-width: 30em) {
+  body {
+    font-size: 16px;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+  }
+  
+  h2 {
+    font-size: 1.25rem;
+  }
+}
+
+/* Pagination and link hover effects */
+.hover-primary:hover {
+  color: var(--primary) !important;
+}
+
+/* Blog specific styles */
+.persian-text {
+  font-family: 'Vazirmatn', sans-serif;
+  direction: rtl;
+  text-align: right;
+}
+
+.persian-text h1,
+.persian-text h2,
+.persian-text h3 {
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+/* Contact form specific styles */
+.contact-form input,
+.contact-form textarea {
+  background-color: var(--grey-2);
+  color: var(--white);
+  border: 1px solid var(--grey-4);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'Vazirmatn', sans-serif;
+  transition: border-color 0.3s ease;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
+}
+
+.contact-form label {
+  color: var(--grey-3);
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 600;
+}
+
+/* Additional form improvements */
+input[type="text"],
+input[type="email"],
+textarea {
+  background-color: var(--black) !important;
+  color: var(--white) !important;
+  border: 1px solid var(--grey-4) !important;
+  font-family: 'Vazirmatn', sans-serif !important;
+  transition: border-color 0.3s ease !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2) !important;
+  outline: none !important;
+}
+
+/* Button hover effect */
+button[type="submit"]:hover {
+  background-color: var(--highlight) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3);
+}
+
+/* Contact page specific styling */
+.contact-container {
+  background-color: var(--grey-1);
+  min-height: 100vh;
+}
+
+.contact-card {
+  background-color: var(--grey-2);
+  border: 1px solid var(--grey-4);
+  border-radius: 8px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.contact-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(218, 165, 32, 0.15);
+}

@@ -1,15 +1,15 @@
 {{ define "main" }}
 
-  <div class="mw6 center ph3 pv4">
-    <h1 class="f2 lh-title b mb3">{{.Title}}</h1>
-    <div class="flex justify-between grey-3">
-      <p>{{ .Date.Format "Mon, Jan 2, 2006" }}</p>
-      <p>Read in {{ .ReadingTime }} minutes</p>
+  <div class="mw6 center ph3 pv4 bg-grey-1">
+    <h1 class="f2 lh-title b mb3 white persian-text">{{.Title}}</h1>
+    <div class="flex justify-between grey-3 persian-text">
+      <p>{{ .Date.Format "2 Jan 2006" }}</p>
+      <p>مطالعه در {{ .ReadingTime }} دقیقه</p>
     </div>
-    <div class="cms mw6">
-      <p>{{ .Description }}</p>
-      {{ with .Resources.Get .Params.image }}<img src="{{ .RelPermalink }}" alt="{{ $.Title }}" />{{ end }}
-      {{ .Content }}
+    <div class="cms mw6 persian-text">
+      <p class="f4 grey-3 lh-copy">{{ .Description }}</p>
+      {{ with .Resources.Get .Params.image }}<img src="{{ .RelPermalink }}" alt="{{ $.Title }}" class="w-100 mb4" />{{ end }}
+      <div class="grey-3 lh-copy">{{ .Content }}</div>
     </div>
   </div>
 {{ end }}

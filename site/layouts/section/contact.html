@@ -1,17 +1,25 @@
 {{ define "main" }}
 
-<div class="ph3 bg-off-white">
-	<div class="center mw6 pv3">
+<div class="ph3 bg-grey-1" style="background-color: var(--grey-1); min-height: 100vh;">
+	<div class="center mw6 pv4">
 
-		<img src="{{ .Params.logo }}" alt="" class="db w4 center pv4">
+		<img src="{{ .Params.logo }}" alt="جواهرات ایمان" class="db w4 center pv4">
 
-		{{ .Content }}
+		<div class="tc mb4">
+			<h1 class="f2 lh-title white mb3" style="color: var(--white); font-family: 'Vazirmatn', sans-serif; direction: rtl;">{{ .Title }}</h1>
+		</div>
 
-		<div class="flex-ns mb3">
+		<div class="mb4" style="color: var(--grey-3); font-family: 'Vazirmatn', sans-serif; direction: rtl; text-align: right; line-height: 1.8;">
+			{{ .Content }}
+		</div>
+
+		<div class="flex-l flex-wrap mb4">
 	        	{{ range .Params.contact_entries }}
-				<div>
-					<h4 class="f4 b lh-title mb2 primary">{{ .heading }}</h4>
-					<p>{{ .text }}</p>
+				<div class="w-50-l w-100 pa3">
+					<div class="pa4 br3" style="background-color: var(--grey-2); border: 1px solid var(--grey-4);">
+						<h4 class="f4 b lh-title mb2" style="color: var(--primary); font-family: 'Vazirmatn', sans-serif; direction: rtl;">{{ .heading }}</h4>
+						<p style="color: var(--grey-3); font-family: 'Vazirmatn', sans-serif; direction: rtl; line-height: 1.6;">{{ .text }}</p>
+					</div>
 				</div>
 			{{ end }}
 		</div>

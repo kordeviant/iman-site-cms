@@ -1,0 +1,152 @@
+/* Dark Jewelry Theme Styles */
+
+/* Body and background styles for dark theme */
+body {
+  background-color: var(--grey-1);
+  color: var(--grey-3);
+}
+
+/* RTL support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .nav-menu {
+  flex-direction: row;
+}
+
+/* Dark theme navigation */
+nav {
+  background-color: var(--black) !important;
+  border-bottom: 1px solid var(--grey-2);
+}
+
+nav a {
+  color: var(--grey-3) !important;
+  transition: color 0.3s ease;
+}
+
+nav a:hover {
+  color: var(--primary) !important;
+}
+
+/* Dark theme cards and containers */
+.bg-white {
+  background-color: var(--grey-1) !important;
+}
+
+.bg-off-white {
+  background-color: var(--grey-2) !important;
+}
+
+/* Ensure text is readable on dark backgrounds */
+.grey-3 {
+  color: var(--grey-3) !important;
+}
+
+.black {
+  color: var(--white) !important;
+}
+
+/* Gold accents for jewelry theme */
+.primary {
+  color: var(--primary) !important;
+}
+
+.bg-primary {
+  background-color: var(--primary) !important;
+  color: var(--black) !important;
+}
+
+/* Button styles */
+button, .btn {
+  background-color: var(--primary);
+  color: var(--black);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+button:hover, .btn:hover {
+  background-color: var(--highlight);
+  transform: translateY(-2px);
+}
+
+/* Form styles for dark theme */
+input, textarea, select {
+  background-color: var(--grey-2);
+  color: var(--white);
+  border: 1px solid var(--grey-4);
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
+}
+
+/* Footer dark theme */
+footer {
+  background-color: var(--black) !important;
+  color: var(--grey-3);
+}
+
+footer a {
+  color: var(--grey-3);
+}
+
+footer a:hover {
+  color: var(--primary);
+}
+
+/* Elegant jewelry-specific styles */
+.jewelry-card {
+  background: linear-gradient(135deg, var(--grey-1) 0%, var(--grey-2) 100%);
+  border: 1px solid var(--grey-4);
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.jewelry-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(218, 165, 32, 0.2);
+  border-color: var(--primary);
+}
+
+/* Persian text optimization */
+.persian-text {
+  font-family: 'Vazirmatn', sans-serif;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+
+/* Elegant dividers */
+.divider-grey {
+  border-bottom: 1px solid var(--grey-4);
+}
+
+/* Image overlays for jewelry showcase */
+.image-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.image-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(218, 165, 32, 0.1) 0%, rgba(255, 215, 0, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.image-overlay:hover::after {
+  opacity: 1;
+}
