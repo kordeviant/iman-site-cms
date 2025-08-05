@@ -38,16 +38,10 @@ async function runInteractiveSetup() {
     
     let credentials = null;
     if (isPrivate.toLowerCase() === 'y' || isPrivate.toLowerCase() === 'yes') {
-      const username = await askQuestion('👤 Enter your Instagram username: ');
-      const password = await askQuestion('🔑 Enter your Instagram password: ');
-      
-      if (username && password) {
-        credentials = { username, password };
-      } else {
-        console.log('❌ Username and password are required for private pages');
-        rl.close();
-        return;
-      }
+      console.log('� Private page detected!');
+      console.log('💡 You will be able to login manually in the browser when prompted.');
+      // Create placeholder credentials to trigger login mode
+      credentials = { username: 'manual', password: 'manual' };
     }
 
     // Get number of posts

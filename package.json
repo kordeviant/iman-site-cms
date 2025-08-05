@@ -23,7 +23,11 @@
     "scrape:instagram": "node scripts/instagram-scraper.js",
     "scrape:example": "node scripts/example.js",
     "scrape:interactive": "node scripts/interactive.js",
-    "scrape:test": "node scripts/test-chrome.js"
+    "scrape:test": "node scripts/test-chrome.js",
+    "scrape:test-instagram": "node scripts/test-instagram.js",
+    "scrape:test-login": "node scripts/test-interactive-login.js",
+    "scrape:test-session": "node scripts/test-session.js",
+    "scrape:clear-session": "node scripts/test-session.js --clear-session"
   },
   "author": "",
   "license": "MIT",

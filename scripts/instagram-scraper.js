@@ -14,10 +14,338 @@ class InstagramScraper {
     this.isLoggedIn = false;
     this.outputDir = path.join(__dirname, '../site/content/products');
     this.imagesDir = path.join(__dirname, '../site/static/img/products');
+    this.sessionDir = path.join(__dirname, '../.instagram-session');
+    this.cookiesFile = path.join(this.sessionDir, 'cookies.json');
+    this.sessionFile = path.join(this.sessionDir, 'session.json');
     
     // Ensure directories exist
     this.ensureDirectoryExists(this.outputDir);
     this.ensureDirectoryExists(this.imagesDir);
+    this.ensureDirectoryExists(this.sessionDir);
+  }
+
+  // Utility function to replace deprecated waitForTimeout
+  async wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async handleCookieConsent() {
+    console.log('🍪 Checking for cookie consent...');
+    
+    try {
+      // Wait a bit for the page to fully load
+      await this.wait(2000);
+      
+      // Instagram-specific cookie consent selectors
+      const cookieSelectors = [
+        'button:contains("Allow all cookies")',
+        'button:contains("Accept all cookies")', 
+        'button[class*="optanon-allow-all"]',
+        'button[data-cookiebanner="accept_button"]',
+        '[role="button"]:contains("Allow all")',
+        '[role="button"]:contains("Accept all")',
+        'button:contains("Allow essential and optional cookies")',
+        'button[class*="cookie"][class*="accept"]',
+        'button[class*="cookie"][class*="allow"]'
+      ];
+      
+      let buttonFound = false;
+      
+      for (const selector of cookieSelectors) {
+        try {
+          // For text-based selectors, we need to find buttons by text content
+          if (selector.includes(':contains(')) {
+            const buttonText = selector.match(/:contains\("([^"]+)"\)/)[1];
+            const buttons = await this.page.$$('button');
+            
+            for (const button of buttons) {
+              const text = await this.page.evaluate(el => el.textContent?.trim(), button);
+              if (text && text.toLowerCase().includes(buttonText.toLowerCase())) {
+                console.log(`🍪 Found cookie consent button with text: "${text}"`);
+                await button.click();
+                buttonFound = true;
+                await this.wait(1000);
+                break;
+              }
+            }
+          } else {
+            // For CSS selectors
+            const button = await this.page.$(selector);
+            if (button) {
+              const text = await this.page.evaluate(el => el.textContent?.trim(), button);
+              console.log(`🍪 Found cookie consent button: ${selector} (text: "${text}")`);
+              await button.click();
+              buttonFound = true;
+              await this.wait(1000);
+              break;
+            }
+          }
+          
+          if (buttonFound) break;
+        } catch (e) {
+          // Continue to next selector
+          continue;
+        }
+      }
+      
+      if (!buttonFound) {
+        console.log('🍪 No cookie consent banner found - proceeding');
+      } else {
+        console.log('✅ Cookie consent handled successfully');
+      }
+      
+    } catch (error) {
+      console.log('⚠️  Cookie handling failed:', error.message);
+      // Don't throw - just continue
+    }
+  }
+
+  async waitForLoginCompletion() {
+    console.log('🔍 Monitoring for login completion...');
+    
+    const maxWaitTime = 300000; // 5 minutes
+    const checkInterval = 2000; // Check every 2 seconds
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < maxWaitTime) {
+      try {
+        const currentUrl = this.page.url();
+        
+        // Check for successful login indicators
+        const loginSuccessChecks = [
+          // URL-based checks
+          () => currentUrl.includes('/accounts/onetap/'),
+          () => currentUrl === 'https://www.instagram.com/',
+          () => currentUrl.includes('/feed/'),
+          () => currentUrl.includes('instagram.com') && !currentUrl.includes('/accounts/login/'),
+          
+          // Element-based checks
+          async () => await this.page.$('svg[aria-label="Home"]') !== null,
+          async () => await this.page.$('a[href="/"]') !== null,
+          async () => await this.page.$('[data-testid="new-post-button"]') !== null,
+          async () => await this.page.$('nav[role="navigation"]') !== null,
+          async () => await this.page.$('input[placeholder*="Search"]') !== null
+        ];
+        
+        // Check each success indicator
+        for (const check of loginSuccessChecks) {
+          try {
+            const result = await check();
+            if (result) {
+              console.log('✅ Login success detected!');
+              return true;
+            }
+          } catch (e) {
+            // Continue to next check
+            continue;
+          }
+        }
+        
+        // Check for error conditions
+        const errorElement = await this.page.$('div[role="alert"]');
+        if (errorElement) {
+          const errorText = await this.page.evaluate(el => el.textContent?.trim(), errorElement);
+          if (errorText && errorText.length > 0) {
+            throw new Error(`Login error: ${errorText}`);
+          }
+        }
+        
+        // Update user on progress
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        if (elapsed % 10 === 0) {
+          console.log(`⏳ Still waiting for login... (${elapsed}s elapsed)`);
+        }
+        
+        // Wait before next check
+        await this.wait(checkInterval);
+        
+      } catch (error) {
+        throw error;
+      }
+    }
+    
+    throw new Error('Login timeout: Please complete login within 5 minutes');
+  }
+
+  async addHumanBehavior() {
+    try {
+      console.log('🤖 Adding human-like behavior...');
+      
+      // Random scroll to simulate reading
+      await this.page.evaluate(() => {
+        const scrollAmount = Math.random() * 300 + 100;
+        window.scrollBy(0, scrollAmount);
+      });
+      
+      // Random wait between 1-3 seconds
+      await this.wait(1000 + Math.random() * 2000);
+      
+      // Random mouse movement
+      const viewport = this.page.viewport();
+      const x = Math.random() * viewport.width;
+      const y = Math.random() * viewport.height;
+      
+      await this.page.mouse.move(x, y, { steps: 10 });
+      await this.wait(500 + Math.random() * 1000);
+      
+      // Sometimes click somewhere random (but safe)
+      if (Math.random() > 0.7) {
+        await this.page.mouse.click(x, y);
+        await this.wait(500);
+      }
+      
+    } catch (error) {
+      console.log('⚠️  Human behavior simulation failed:', error.message);
+    }
+  }
+
+  async saveSession() {
+    try {
+      console.log('💾 Saving login session...');
+      
+      // Save cookies
+      const cookies = await this.page.cookies();
+      fs.writeFileSync(this.cookiesFile, JSON.stringify(cookies, null, 2));
+      
+      // Save session info
+      const sessionInfo = {
+        isLoggedIn: this.isLoggedIn,
+        timestamp: Date.now(),
+        userAgent: await this.page.evaluate(() => navigator.userAgent),
+        url: this.page.url()
+      };
+      fs.writeFileSync(this.sessionFile, JSON.stringify(sessionInfo, null, 2));
+      
+      console.log('✅ Session saved successfully!');
+    } catch (error) {
+      console.log('⚠️  Failed to save session:', error.message);
+    }
+  }
+
+  async loadSession() {
+    try {
+      console.log('🔄 Checking for saved session...');
+      
+      // Check if session files exist
+      if (!fs.existsSync(this.cookiesFile) || !fs.existsSync(this.sessionFile)) {
+        console.log('ℹ️  No saved session found');
+        return false;
+      }
+      
+      // Load session info
+      const sessionInfo = JSON.parse(fs.readFileSync(this.sessionFile, 'utf8'));
+      
+      // Check if session is not too old (24 hours)
+      const sessionAge = Date.now() - sessionInfo.timestamp;
+      const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+      
+      if (sessionAge > maxAge) {
+        console.log('⏰ Saved session is too old, starting fresh');
+        this.clearSession();
+        return false;
+      }
+      
+      // Load cookies
+      const cookies = JSON.parse(fs.readFileSync(this.cookiesFile, 'utf8'));
+      
+      console.log('🔄 Restoring saved session...');
+      
+      // Set cookies in the browser (but don't navigate yet)
+      await this.page.setCookie(...cookies);
+      
+      // Mark as logged in based on saved session info
+      this.isLoggedIn = sessionInfo.isLoggedIn;
+      
+      if (this.isLoggedIn) {
+        console.log('✅ Session restored successfully!');
+        return true;
+      } else {
+        console.log('❌ Saved session indicates not logged in');
+        this.clearSession();
+        return false;
+      }
+      
+    } catch (error) {
+      console.log('⚠️  Failed to load session:', error.message);
+      this.clearSession();
+      return false;
+    }
+  }
+
+  async validateSession() {
+    // This method validates the session when we actually need to use it
+    try {
+      console.log('🔍 Validating session...');
+      
+      // Go to Instagram to test the session
+      await this.page.goto('https://www.instagram.com/', {
+        waitUntil: 'networkidle2',
+        timeout: 30000
+      });
+      
+      await this.wait(3000);
+      
+      // Check if we're still logged in
+      const isStillLoggedIn = await this.checkLoginStatus();
+      
+      if (isStillLoggedIn) {
+        console.log('✅ Session is still valid!');
+        return true;
+      } else {
+        console.log('❌ Session expired, need to login again');
+        this.clearSession();
+        this.isLoggedIn = false;
+        return false;
+      }
+      
+    } catch (error) {
+      console.log('⚠️  Session validation failed:', error.message);
+      this.clearSession();
+      this.isLoggedIn = false;
+      return false;
+    }
+  }
+
+  async checkLoginStatus() {
+    try {
+      // Check for login indicators
+      const loginIndicators = [
+        () => this.page.url().includes('instagram.com') && !this.page.url().includes('/accounts/login/'),
+        async () => await this.page.$('svg[aria-label="Home"]') !== null,
+        async () => await this.page.$('a[href="/"]') !== null,
+        async () => await this.page.$('input[placeholder*="Search"]') !== null,
+        async () => await this.page.$('nav[role="navigation"]') !== null
+      ];
+      
+      for (const check of loginIndicators) {
+        try {
+          const result = await check();
+          if (result) {
+            return true;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  clearSession() {
+    try {
+      if (fs.existsSync(this.cookiesFile)) {
+        fs.unlinkSync(this.cookiesFile);
+      }
+      if (fs.existsSync(this.sessionFile)) {
+        fs.unlinkSync(this.sessionFile);
+      }
+      console.log('🗑️  Cleared saved session');
+    } catch (error) {
+      console.log('⚠️  Failed to clear session:', error.message);
+    }
   }
 
   ensureDirectoryExists(dirPath) {
@@ -31,17 +359,53 @@ class InstagramScraper {
     
     try {
       this.browser = await puppeteer.launch({
-        headless: false, // Set to true for production
+        headless: false, // Keep visible to appear more human
         defaultViewport: null,
         args: [
+          // Basic security
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
+          
+          // Anti-detection measures
+          '--disable-blink-features=AutomationControlled',
+          '--disable-features=VizDisplayCompositor',
+          '--disable-automation',
+          '--disable-web-security',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection',
+          '--disable-renderer-backgrounding',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-client-side-phishing-detection',
+          '--disable-sync',
+          '--disable-default-apps',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-hang-monitor',
+          '--disable-popup-blocking',
+          '--disable-prompt-on-repost',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-features=TranslateUI,BlinkGenPropertyTrees',
           '--no-first-run',
+          '--no-default-browser-check',
           '--no-zygote',
-          '--disable-gpu'
-        ]
+          '--disable-gpu',
+          
+          // Make it look more like a real browser
+          '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          '--window-size=1366,768',
+          '--disable-infobars',
+          '--start-maximized',
+          
+          // Additional privacy flags
+          '--incognito',
+          '--disable-logging',
+          '--disable-gpu-logging',
+          '--silent'
+        ],
+        ignoreDefaultArgs: ['--enable-automation'],
+        ignoreHTTPSErrors: true
       });
     } catch (error) {
       console.error('❌ Failed to launch browser:', error.message);
@@ -58,11 +422,101 @@ class InstagramScraper {
 
     this.page = await this.browser.newPage();
     
-    // Set user agent
-    await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    // Additional anti-detection measures
+    await this.page.evaluateOnNewDocument(() => {
+      // Remove webdriver property
+      delete navigator.__proto__.webdriver;
+      
+      // Override the plugins property to use a custom getter
+      Object.defineProperty(navigator, 'plugins', {
+        get: function() {
+          return [1, 2, 3, 4, 5]; // Fake plugins
+        },
+      });
+      
+      // Override the languages property to use a custom getter
+      Object.defineProperty(navigator, 'languages', {
+        get: function() {
+          return ['en-US', 'en'];
+        },
+      });
+      
+      // Override the webdriver property
+      Object.defineProperty(navigator, 'webdriver', {
+        get: function() {
+          return undefined;
+        },
+      });
+      
+      // Mock chrome object
+      window.chrome = {
+        runtime: {},
+        loadTimes: function() {},
+        csi: function() {},
+        app: {}
+      };
+      
+      // Mock permissions
+      const originalQuery = window.navigator.permissions.query;
+      window.navigator.permissions.query = (parameters) => (
+        parameters.name === 'notifications' ?
+          Promise.resolve({ state: Notification.permission }) :
+          originalQuery(parameters)
+      );
+    });
     
-    // Set viewport
-    await this.page.setViewport({ width: 1366, height: 768 });
+    // Set a more realistic user agent
+    await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    
+    // Set realistic viewport
+    await this.page.setViewport({ 
+      width: 1366, 
+      height: 768,
+      deviceScaleFactor: 1,
+      hasTouch: false,
+      isLandscape: true,
+      isMobile: false
+    });
+    
+    // Set extra headers to look more human
+    await this.page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+      'Upgrade-Insecure-Requests': '1',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    });
+    
+    // Add random mouse movements to seem more human
+    await this.page.evaluateOnNewDocument(() => {
+      // Add random mouse movements
+      setInterval(() => {
+        if (Math.random() > 0.7) {
+          const x = Math.random() * window.innerWidth;
+          const y = Math.random() * window.innerHeight;
+          const event = new MouseEvent('mousemove', {
+            clientX: x,
+            clientY: y,
+            bubbles: true
+          });
+          document.dispatchEvent(event);
+        }
+      }, 2000 + Math.random() * 3000);
+    });
+
+    // Try to load existing session if credentials are provided
+    if (this.credentials) {
+      console.log('🔍 Checking for existing login session...');
+      try {
+        const sessionLoaded = await this.loadSession();
+        if (sessionLoaded) {
+          console.log('🎯 Found and restored previous login session!');
+        }
+      } catch (error) {
+        console.log('ℹ️  No valid session found, will need to login manually');
+      }
+    }
   }
 
   async login() {
@@ -71,8 +525,23 @@ class InstagramScraper {
       return false;
     }
 
+    // Check if these are placeholder credentials from interactive mode
+    const isInteractiveMode = this.credentials.username === 'manual' && this.credentials.password === 'manual';
+
+    // Try to load existing session first (without navigating to Instagram)
+    const sessionLoaded = await this.loadSession();
+    if (sessionLoaded) {
+      console.log("🎯 Found saved login session! Will validate when needed.");
+      return true;
+    }
+
     try {
-      console.log('🔐 Logging into Instagram...');
+      if (isInteractiveMode) {
+        console.log('🔐 Starting interactive login to Instagram...');
+        console.log('💡 Since this is a private page, you will login manually in the browser');
+      } else {
+        console.log('🔐 Starting fresh login to Instagram...');
+      }
       
       // Go to Instagram login page
       await this.page.goto('https://www.instagram.com/accounts/login/', {
@@ -84,72 +553,68 @@ class InstagramScraper {
       await this.page.waitForSelector('input[name="username"]', { timeout: 10000 });
       
       // Handle cookie banner if present
+      await this.handleCookieConsent();
+
+      // Interactive login mode - let user handle it manually
+      console.log('\n🎯 INTERACTIVE LOGIN MODE');
+      console.log('==========================');
+      console.log('👤 Please complete the login manually in the browser window:');
+      console.log('   1. Enter your Instagram username and password');
+      console.log('   2. Handle any 2FA/verification if required');
+      console.log('   3. Complete any security challenges');
+      console.log('   4. Wait until you see the Instagram home page');
+      console.log('\n⏳ The script will automatically detect when login is complete...');
+      console.log('💡 Press Ctrl+C if you want to cancel');
+      console.log('\n🤖 Anti-Detection Features Active:');
+      console.log('   ✅ Stealth browser configuration');
+      console.log('   ✅ Human-like mouse movements');
+      console.log('   ✅ Realistic browser headers');
+      console.log('   ✅ WebDriver properties hidden');
+      console.log('   ✅ Manual login (most human-like)');
+      console.log('   ✅ Session persistence (login once, stay logged in)\n');
+
+      // Add some random human-like movements before login
+      await this.addHumanBehavior();
+
+      // Wait for login completion by checking URL changes
+      await this.waitForLoginCompletion();
+
+      console.log('✅ Successfully logged into Instagram!');
+      this.isLoggedIn = true;
+      
+      // Save session for future use
+      await this.saveSession();
+      
+      // Handle any post-login dialogs (Save Login Info, Notifications, etc.)
       try {
-        const acceptCookiesBtn = await this.page.$('button[class*="cookie"]');
-        if (acceptCookiesBtn) {
-          await acceptCookiesBtn.click();
-          await this.page.waitForTimeout(2000);
-        }
-      } catch (e) {
-        console.log('No cookies banner found on login page');
-      }
-
-      // Fill in credentials
-      console.log('📝 Entering credentials...');
-      await this.page.type('input[name="username"]', this.credentials.username, { delay: 100 });
-      await this.page.type('input[name="password"]', this.credentials.password, { delay: 100 });
-
-      // Click login button
-      await this.page.click('button[type="submit"]');
-      
-      // Wait for navigation or error
-      await this.page.waitForTimeout(3000);
-
-      // Check if login was successful
-      const currentUrl = this.page.url();
-      
-      // Check for various success indicators
-      const isLoginSuccess = 
-        currentUrl.includes('/accounts/onetap/') ||
-        currentUrl === 'https://www.instagram.com/' ||
-        currentUrl.includes('/feed/') ||
-        await this.page.$('svg[aria-label="Home"]') !== null;
-
-      // Check for error messages
-      const errorElement = await this.page.$('div[role="alert"]');
-      if (errorElement) {
-        const errorText = await this.page.evaluate(el => el.textContent, errorElement);
-        throw new Error(`Login failed: ${errorText}`);
-      }
-
-      if (isLoginSuccess) {
-        console.log('✅ Successfully logged into Instagram!');
-        this.isLoggedIn = true;
+        console.log('🔄 Checking for post-login dialogs...');
         
-        // Handle "Save Your Login Info?" dialog if it appears
-        try {
-          await this.page.waitForSelector('button:contains("Not Now")', { timeout: 5000 });
-          await this.page.click('button:contains("Not Now")');
-        } catch (e) {
-          // Dialog might not appear, that's fine
+        // Handle "Save Your Login Info?" dialog
+        const saveLoginButton = await this.page.$('button:contains("Not Now")');
+        if (saveLoginButton) {
+          console.log('💾 Dismissing "Save Login Info" dialog...');
+          await saveLoginButton.click();
+          await this.wait(1000);
         }
-
-        // Handle notification permission dialog if it appears
-        try {
-          await this.page.waitForSelector('button:contains("Not Now")', { timeout: 5000 });
-          await this.page.click('button:contains("Not Now")');
-        } catch (e) {
-          // Dialog might not appear, that's fine
+        
+        // Handle notification permission dialog
+        const notificationButton = await this.page.$('button:contains("Not Now")');
+        if (notificationButton) {
+          console.log('🔔 Dismissing notification dialog...');
+          await notificationButton.click();
+          await this.wait(1000);
         }
-
-        return true;
-      } else {
-        throw new Error('Login failed - unknown error');
+        
+      } catch (e) {
+        console.log('ℹ️  No post-login dialogs found');
       }
+
+      return true;
 
     } catch (error) {
       console.error('❌ Login failed:', error.message);
       this.isLoggedIn = false;
+      this.clearSession(); // Clear any partial session data
       throw error;
     }
   }
@@ -161,6 +626,22 @@ class InstagramScraper {
         await this.login();
       }
 
+      // Validate session if we have one (this will navigate to Instagram if needed)
+      if (this.isLoggedIn) {
+        console.log("🔍 Validating saved session...");
+        const sessionValid = await this.validateSession();
+        if (!sessionValid) {
+          console.log("⚠️  Session expired, will need to login again");
+          this.isLoggedIn = false;
+          // Clear the session
+          this.clearSession();
+          // Try to login again
+          if (this.credentials) {
+            await this.login();
+          }
+        }
+      }
+
       console.log(`📱 Navigating to ${instagramUrl}...`);
       
       await this.page.goto(instagramUrl, { 
@@ -169,28 +650,29 @@ class InstagramScraper {
       });
 
       // Wait for page to load
-      await this.page.waitForTimeout(3000);
+      await this.wait(3000);
 
       // Check if we're on a private account page that requires login
-      const isPrivatePage = await this.page.$('h2:contains("This Account is Private")') !== null;
+      const isPrivatePage = await this.page.evaluate(() => {
+        const h2Elements = document.querySelectorAll('h2');
+        return Array.from(h2Elements).some(h2 => h2.textContent.includes('This Account is Private'));
+      });
       
       if (isPrivatePage && !this.isLoggedIn) {
         throw new Error('This is a private account and no login credentials were provided');
       }
 
       // Check if we need to accept cookies
-      try {
-        const acceptCookiesBtn = await this.page.$('button[class*="cookie"]');
-        if (acceptCookiesBtn) {
-          await acceptCookiesBtn.click();
-          await this.page.waitForTimeout(2000);
-        }
-      } catch (e) {
-        console.log('No cookies banner found');
-      }
+      await this.handleCookieConsent();
+
+      // Add human-like behavior before scrolling
+      await this.addHumanBehavior();
 
       // Scroll to load more posts
       await this.autoScroll();
+
+      // Add more human behavior after scrolling
+      await this.addHumanBehavior();
 
       // Get all posts
       const posts = await this.extractPosts();
@@ -224,7 +706,7 @@ class InstagramScraper {
       });
     });
 
-    await this.page.waitForTimeout(2000);
+    await this.wait(2000);
   }
 
   async extractPosts() {
@@ -392,7 +874,7 @@ Contact us to learn more about this piece or to place an order.
         }
         
         // Add delay between requests
-        await this.page.waitForTimeout(1000);
+        await this.wait(1000);
         
       } catch (error) {
         console.error(`❌ Error processing post ${post.id}:`, error);
@@ -409,8 +891,20 @@ Contact us to learn more about this piece or to place an order.
 
   async close() {
     if (this.browser) {
+      // Save session one more time before closing
+      if (this.isLoggedIn) {
+        await this.saveSession();
+      }
       await this.browser.close();
     }
+  }
+
+  // Method to manually clear saved session
+  async clearSavedSession() {
+    console.log('🗑️  Clearing saved login session...');
+    this.clearSession();
+    this.isLoggedIn = false;
+    console.log('✅ Session cleared! You will need to login again next time.');
   }
 
   // Main method to scrape and convert Instagram posts to products
