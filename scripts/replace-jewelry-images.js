@@ -289,7 +289,7 @@ const illustrationReplacements = {
 };
 
 async function replaceJewelryImages() {
-  console.log("💎 Replacing coffee/kaldi images with jewelry-themed content...");
+  console.log("💎 Replacing coffee/6side jewelry images with jewelry-themed content...");
   
   const imgDir = path.join(__dirname, "../site/static/img");
   const generator = new JewelryImageGenerator();
@@ -331,7 +331,7 @@ async function replaceJewelryImages() {
   console.log(`✅ Replaced ${replacedCount} images with jewelry themes`);
   console.log("");
   console.log("🎯 NEXT STEPS:");
-  console.log("1. All coffee/kaldi images replaced with jewelry-themed SVGs");
+  console.log("1. All coffee/6side jewelry images replaced with jewelry-themed SVGs");
   console.log("2. Logo updated to '6side jewelry' with hexagon design");
   console.log("3. For production, consider replacing SVGs with actual jewelry photos");
   console.log("");

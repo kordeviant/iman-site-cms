@@ -50,5 +50,5 @@ Make sure you use consistent icons in terms of viewport and art direction for op
 For an icon named `icons-facebook.svg`, refer to the SVG `social-icon` partial like so:
 
 ```
-{{ partial "social-icon" (dict "link" "#" "svg" "icons-facebook" "alt" "Kaldi on Facebook") }}
+{{ partial "social-icon" (dict "link" "#" "svg" "icons-facebook" "alt" "6side jewelry on Facebook") }}
 ```

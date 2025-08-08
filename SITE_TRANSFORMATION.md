@@ -11,7 +11,7 @@
 4. ✅ Make posts add as products in CMS with image arrays
 5. ✅ Show scraped images in CMS media section
 6. ✅ Replace non-Instagram images with jewelry photos
-7. ✅ Replace "kaldi text logo" with "6side jewelry" logo
+7. ✅ Replace "6side jewelry text logo" with "6side jewelry" logo
 
 ---
 
@@ -42,10 +42,10 @@
 
 ### 4. **Complete Rebranding**
 - **Logo**: `site/static/img/logo.svg`
-  - Replaced "KALDI" coffee theme
+  - Replaced "6side jewelry" coffee theme
   - Custom "6side jewelry" hexagon design
   - Gold gradients and decorative diamonds
-- **Images**: Replaced 19 coffee/kaldi images with jewelry themes
+- **Images**: Replaced 19 coffee/6side jewelry images with jewelry themes
   - About sections (5 images)
   - Home pages (2 images) 
   - Product pages (5 images)
@@ -58,7 +58,7 @@
 
 ### **Before → After**
 - ❌ Coffee shop theme → ✅ Elegant jewelry boutique
-- ❌ "KALDI" branding → ✅ "6side jewelry" branding
+- ❌ "6side jewelry" branding → ✅ "6side jewelry" branding
 - ❌ Instagram images not in CMS → ✅ 74 images visible in media library
 - ❌ Products not editable → ✅ Full CMS product management
 - ❌ Manual scraping → ✅ Automated private account scraping
