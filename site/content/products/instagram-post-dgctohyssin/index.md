@@ -1,18 +1,7 @@
 ---
 title: "Instagram Post DGctohYsSiN"
 date: 2025-08-08
-description: "When I Engraving, I distance myself from the world and its bad things and go into a world that is full of light and goodness, real, like love!🔬🗡💎
-
-گزیده ای از مراحل قلمزنی و حکاکی انگشتر یاقوت کبود
-
-تقدیم میکنم به کسی که با اینکه مرد نبود،ولی از ۱۰۰ تا مرد،مردتر بود و همیشه و در همه حال نور راهنمایی و امیدواریمون بود❤️
-
-03/12/6
-#مادر
-
-__________________________
-#Engraving #Microsetting ##Microstingtrainer #stonesetter #Gemstone #Sapphire_stone #Sapphire_ring
-#T.F.U.B.M.P"
+description: "When I Engraving, I distance myself from the world and its bad things and go into a world that is full of light and goodness, real, like love!🔬🗡💎\n\nگزیده ای از مراحل قلمزنی و حکاکی انگشتر یاقوت کبود\n\nتقدیم میکنم به کسی که با اینکه مرد نبود،ولی از ۱۰۰ تا مرد،مردتر بود و همیشه و در همه حال نور راهنمایی و امیدواریمون بود❤️\n\n03/12/6\n#مادر\n\n__________________________\n#Engraving #Microsetting ##Microstingtrainer #stonesetter #Gemstone #Sapphire_stone #Sapphire_ring\n#T.F.U.B.M.P"
 image: "/img/instagram-DGctohYsSiN.jpg"
 price: 0
 category: "Instagram Collection"

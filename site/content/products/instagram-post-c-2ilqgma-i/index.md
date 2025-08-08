@@ -1,25 +1,7 @@
 ---
 title: "Instagram Post C-2ILqGMA-i"
 date: 2025-08-08
-description: "♊️تو هم این و درک کن،اگه جا من بودی
-خیابونو خاص میدیدی،اگه جاااا من بودی😉🗡🔬💎
-
-Silver ring decorated with brilliant cut CZ 5A & Quartz sweet cut stone😍⚪️
-
-For making and embedding stones from
-#Filetpave_brightcut setting 
-#claw_prong for restrain quartz⚒️🗡🔬
-
-انگشتر نقره مزين شده با در نجف(Clear quartz) 
-و سنگ Cz تراش برلیان 
-
-سفارش هنرمند عزیزمون
-@sizjewelry 
-
-_________________________
-#Microsetting #Microstingtrainer #gemstone
-#Stonesetting #filetpave #bead&bright_cut #Silver
-#alchemy & herbalism #jewellryroja"
+description: "♊️تو هم این و درک کن،اگه جا من بودی\nخیابونو خاص میدیدی،اگه جاااا من بودی😉🗡🔬💎\n\nSilver ring decorated with brilliant cut CZ 5A & Quartz sweet cut stone😍⚪️\n\nFor making and embedding stones from\n#Filetpave_brightcut setting \n#claw_prong for restrain quartz⚒️🗡🔬\n\nانگشتر نقره مزين شده با در نجف(Clear quartz) \nو سنگ Cz تراش برلیان \n\nسفارش هنرمند عزیزمون\n@sizjewelry \n\n_________________________\n#Microsetting #Microstingtrainer #gemstone\n#Stonesetting #filetpave #bead&bright_cut #Silver\n#alchemy & herbalism #jewellryroja"
 image: "/img/instagram-C-2ILqGMA-i.jpg"
 price: 0
 category: "Instagram Collection"

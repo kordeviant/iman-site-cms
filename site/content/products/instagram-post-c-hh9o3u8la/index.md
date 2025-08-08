@@ -1,18 +1,7 @@
 ---
 title: "Instagram Post C-hh9O3u8LA"
 date: 2025-08-08
-description: "Golden Girl and boy supplement and balance of nature🧑👧🌳🌴🌵
-
-پلاک اویز طلا  750 
-دختر 👧  پسر🧑 just friend 
-مزین شده با برلیان  IF
-وزن کل: 1.800 gr
-Color: E
-Carat: 0.05
-Clarity: IF
-Cut: brilliant 
-____________________________
-#Microsetting #microsettingtrainer #Stonesetting #pavesetting #sidebysidesetting #necklace #gold750 #diamondsetter #jewellryroja"
+description: "Golden Girl and boy supplement and balance of nature🧑👧🌳🌴🌵\n\nپلاک اویز طلا  750 \nدختر 👧  پسر🧑 just friend \nمزین شده با برلیان  IF\nوزن کل: 1.800 gr\nColor: E\nCarat: 0.05\nClarity: IF\nCut: brilliant \n____________________________\n#Microsetting #microsettingtrainer #Stonesetting #pavesetting #sidebysidesetting #necklace #gold750 #diamondsetter #jewellryroja"
 image: "/img/instagram-C-hh9O3u8LA.jpg"
 price: 0
 category: "Instagram Collection"

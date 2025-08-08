@@ -1,15 +1,7 @@
 ---
 title: "Instagram Post Cw4cwbbtsuR"
 date: 2025-08-08
-description: "Marquise & Princess white gold ring💍
-
-⚒️sinc:2015
-
-📌setting: prong & bead&bright_cut & flush
-
-💎used stone: Marquis & Princess diamonds with vvs1 quality
-_____________________
-#Microsetting #microsettingtrainer #stonesetting #stonesetter #jewelryring #white_gold #marquise_cut #princess_cut #flushsetting #bead&bright_cut #prongsetting #custom_made #jewelryroja"
+description: "Marquise & Princess white gold ring💍\n\n⚒️sinc:2015\n\n📌setting: prong & bead&bright_cut & flush\n\n💎used stone: Marquis & Princess diamonds with vvs1 quality\n_____________________\n#Microsetting #microsettingtrainer #stonesetting #stonesetter #jewelryring #white_gold #marquise_cut #princess_cut #flushsetting #bead&bright_cut #prongsetting #custom_made #jewelryroja"
 image: "/img/instagram-Cw4cwbbtsuR.jpg"
 price: 0
 category: "Instagram Collection"

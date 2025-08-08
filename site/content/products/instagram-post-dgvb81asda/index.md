@@ -1,17 +1,7 @@
 ---
 title: "Instagram Post DGvB81AsD_a"
 date: 2025-08-08
-description: "Marquise  Immortal ring with all brilliant-cut diamonds. 
-
-وزن طلا 750 : 6.660 gr
-کیفیت پاکی الماس برلیان : VVS1
-وزن الماس برلیان : CT 1.40
-وزن الماس مارکیز:2.67 CT
-پلتفرم سازی : V_split_setting 
-___________________
-#Microsetting #stonesetting
-#microsettingtrainer
-#gemstones #diamondsetting #marquise_ring  #marquise_cut #T.F.U.B.M.P"
+description: "Marquise  Immortal ring with all brilliant-cut diamonds. \n\nوزن طلا 750 : 6.660 gr\nکیفیت پاکی الماس برلیان : VVS1\nوزن الماس برلیان : CT 1.40\nوزن الماس مارکیز:2.67 CT\nپلتفرم سازی : V_split_setting \n___________________\n#Microsetting #stonesetting\n#microsettingtrainer\n#gemstones #diamondsetting #marquise_ring  #marquise_cut #T.F.U.B.M.P"
 image: "/img/instagram-DGvB81AsD_a.jpg"
 price: 0
 category: "Instagram Collection"

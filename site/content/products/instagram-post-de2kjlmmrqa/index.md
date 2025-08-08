@@ -1,14 +1,7 @@
 ---
 title: "Instagram Post DE2KJlmMrqA"
 date: 2025-08-08
-description: "Spirit Breaker Medal.
-Charges down enemies from anywhere on the map🏎🏍
-
-⚒️🗡#Flush_setting & V_spilet _setting It was used for this purpose, and you can clearly see the effects of 3D engraving and embossing on its body.
-
-Stone: tourmaline & Ruby To make up the face of a wild Buffalo ♨️
-<<<<<<<<<>>>>>>>>>
-#مخراجکاری_مدرن ##مخراجکاری_طلا ##اموزش_پژوهش #گوهرنشانی #حکاکی_انگلابادی_ارت #مرصع_کاری #قلمزنی #FMP"
+description: "Spirit Breaker Medal.\nCharges down enemies from anywhere on the map🏎🏍\n\n⚒️🗡#Flush_setting & V_spilet _setting It was used for this purpose, and you can clearly see the effects of 3D engraving and embossing on its body.\n\nStone: tourmaline & Ruby To make up the face of a wild Buffalo ♨️\n<<<<<<<<<>>>>>>>>>\n#مخراجکاری_مدرن ##مخراجکاری_طلا ##اموزش_پژوهش #گوهرنشانی #حکاکی_انگلابادی_ارت #مرصع_کاری #قلمزنی #FMP"
 image: "/img/instagram-DE2KJlmMrqA.jpg"
 price: 0
 category: "Instagram Collection"

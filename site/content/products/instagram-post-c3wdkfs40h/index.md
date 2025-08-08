@@ -1,7 +1,57 @@
 ---
 title: "Instagram Post C_3WDkFs40h"
 date: 2025-08-08
-description: ""Kiss me more" 
+description: "Kiss me more - Tennis bracelet with brilliant cut diamonds. White gold with basket prong setting. Total weight 7.367g, diamond weight 3.390 CT."
+image: "/img/instagram-C_3WDkFs40h-img-1.jpg"
+primary_media_type: "image"
+gallery:
+  - "/img/instagram-C_3WDkFs40h-img-1.jpg"
+  - "/img/instagram-C_3WDkFs40h-img-2.jpg"
+  - "/img/instagram-C_3WDkFs40h-img-3.jpg"
+  - "/img/instagram-C_3WDkFs40h-img-4.jpg"
+  - "/img/instagram-C_3WDkFs40h-img-5.jpg"
+  - "/img/instagram-C_3WDkFs40h-img-6.jpg"
+  - "/img/instagram-C_3WDkFs40h-img-7.jpg"
+images:
+  - url: "/img/instagram-C_3WDkFs40h-img-1.jpg"
+    alt: "Instagram jewelry C_3WDkFs40h image 1"
+    width: 720
+    height: 720
+  - url: "/img/instagram-C_3WDkFs40h-img-2.jpg"
+    alt: "Instagram jewelry C_3WDkFs40h image 2"
+    width: 720
+    height: 720
+  - url: "/img/instagram-C_3WDkFs40h-img-3.jpg"
+    alt: "Instagram jewelry C_3WDkFs40h image 3"
+    width: 720
+    height: 720
+  - url: "/img/instagram-C_3WDkFs40h-img-4.jpg"
+    alt: "Instagram jewelry C_3WDkFs40h image 4"
+    width: 720
+    height: 720
+  - url: "/img/instagram-C_3WDkFs40h-img-5.jpg"
+    alt: "Instagram jewelry C_3WDkFs40h image 5"
+    width: 720
+    height: 720
+  - url: "/img/instagram-C_3WDkFs40h-img-6.jpg"
+    alt: "Instagram jewelry C_3WDkFs40h image 6"
+    width: 720
+    height: 720
+  - url: "/img/instagram-C_3WDkFs40h-img-7.jpg"
+    alt: "Instagram jewelry C_3WDkFs40h image 7"
+    width: 720
+    height: 720
+price: 0
+category: "Instagram Collection"
+in_stock: true
+featured: false
+weight: 100
+draft: false
+instagram_post: "https://www.instagram.com/6_side_jewelry/p/C_3WDkFs40h/"
+instagram_account: "6_side_jewelry"
+---
+
+"Kiss me more" 
 
 Tennis bracelet with brilliant cut diamonds 💎
 

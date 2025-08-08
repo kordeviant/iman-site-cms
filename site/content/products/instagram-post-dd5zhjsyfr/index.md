@@ -1,36 +1,7 @@
 ---
 title: "Instagram Post DD_5ZhjsYFr"
 date: 2025-08-08
-description: "🔎درسته که زمرد کلمبیاست،ولی یه شهباز اریایی که زمرد رو با پنجه هاش🦅 گرفتتش و ازش محافظت میکنه💎🗡🔬
-
-انگشتر زمرد کلمبیا چنگ پنجه ای💍🇨🇴🔫
-
-Emerald claw ring💍🇨🇴🔫
-
-Total weight: 6.660 Gr
-
- MAIN GEMSTONE 
-
-Carat weight : 3.850 Ct
-Idendity :  Natural  Emerald 
-Shape :  Radiant
-Clarity type : |||-includes eye
-Hue :  Green
-Saturation : ViVid-Bright
-Quality : 8-9 Verygood-Excellent
-
-ADDITIONAL MAIN GEMSTONES
-Carat weight : 1.20 Ct
-IDENTITY : Natural earth Diamond 
-Cut : Brilliant 
-Clarity grade : VVS2 
-Color grade : F & Canary yellow
-
-Setting implemented: Filet pave, scallop 
-
-________________________
-
-#FMP #Microsetting #Microstingtrainer #gemstone #Stonesetting #Emerald #goldring #Brilliant #Filetpavesetting #scallopsetting"
+description: "🔎درسته که زمرد کلمبیاست،ولی یه شهباز اریایی که زمرد رو با پنجه هاش🦅 گرفتتش و ازش محافظت میکنه💎🗡🔬\n\nانگشتر زمرد کلمبیا چنگ پنجه ای💍🇨🇴🔫\n\nEmerald claw ring💍🇨🇴🔫\n\nTotal weight: 6.660 Gr\n\n MAIN GEMSTONE \n\nCarat weight : 3.850 Ct\nIdendity :  Natural  Emerald \nShape :  Radiant\nClarity type : |||-includes eye\nHue :  Green\nSaturation : ViVid-Bright\nQuality : 8-9 Verygood-Excellent\n\nADDITIONAL MAIN GEMSTONES\nCarat weight : 1.20 Ct\nIDENTITY : Natural earth Diamond \nCut : Brilliant \nClarity grade : VVS2 \nColor grade : F & Canary yellow\n\nSetting implemented: Filet pave, scallop \n\n________________________\n\n#FMP #Microsetting #Microstingtrainer #gemstone #Stonesetting #Emerald #goldring #Brilliant #Filetpavesetting #scallopsetting"
 image: "/img/instagram-DD_5ZhjsYFr.jpg"
 price: 0
 category: "Instagram Collection"

@@ -1,17 +1,7 @@
 ---
 title: "Instagram Post DJwGQI1Mc4k"
 date: 2025-08-08
-description: "Ring of Emerald cut!
-
-When the student reaches the level of her master🗡🔬💎
-
-دست هنر آقا مهدی میکروستینگ باز👏👍🧑‍🎓
-
-Set with : #Bezelsetting #Surface_setting 
-
-<<<<<<>>>>>>
-#Microsetting ##Microstingtrainer #stonesetting #stonesetter #Gemstone #Silver_ring #Emerald_stone
-##Bezelsetting ##Surface_setting"
+description: "Ring of Emerald cut!\n\nWhen the student reaches the level of her master🗡🔬💎\n\nدست هنر آقا مهدی میکروستینگ باز👏👍🧑‍🎓\n\nSet with : #Bezelsetting #Surface_setting \n\n<<<<<<>>>>>>\n#Microsetting ##Microstingtrainer #stonesetting #stonesetter #Gemstone #Silver_ring #Emerald_stone\n##Bezelsetting ##Surface_setting"
 image: "/img/instagram-DJwGQI1Mc4k.jpg"
 price: 0
 category: "Instagram Collection"

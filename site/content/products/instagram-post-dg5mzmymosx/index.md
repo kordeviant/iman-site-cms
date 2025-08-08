@@ -1,17 +1,7 @@
 ---
 title: "Instagram Post DG5MzmyMoSx"
 date: 2025-08-08
-description: "Princess cut yellow diamond ring 🧚‍♂️💃
-
-Weight  gold : 7 . 379 gr
-
-Yellow diamond weight : 1 . 76 CT  Fancy light 
-White diamond weight : 1.70 CT IF E 
-
-Setting used : #Surface_setting #Sharedprong_Setting 🗡💎
-
-___________________
-#Microsetting #microsettingtrainer #artist #stonesetting #gemstones #diamondsetting #yellow_diamond #T.F.U.B.M.P"
+description: "Princess cut yellow diamond ring 🧚‍♂️💃\n\nWeight  gold : 7 . 379 gr\n\nYellow diamond weight : 1 . 76 CT  Fancy light \nWhite diamond weight : 1.70 CT IF E \n\nSetting used : #Surface_setting #Sharedprong_Setting 🗡💎\n\n___________________\n#Microsetting #microsettingtrainer #artist #stonesetting #gemstones #diamondsetting #yellow_diamond #T.F.U.B.M.P"
 image: "/img/instagram-DG5MzmyMoSx.jpg"
 price: 0
 category: "Instagram Collection"

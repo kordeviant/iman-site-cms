@@ -715,7 +715,7 @@ class InstagramScraper {
           
           // Make it look more like a real browser
           "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "--window-size=1366,768",
+          "--window-size=1920,1080",
           "--disable-infobars",
           "--start-maximized",
           
@@ -788,10 +788,10 @@ class InstagramScraper {
     // Set a more realistic user agent
     await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     
-    // Set realistic viewport
+    // Set larger viewport for better content visibility
     await this.page.setViewport({ 
-      width: 1366, 
-      height: 768,
+      width: 1920, 
+      height: 1080,
       deviceScaleFactor: 1,
       hasTouch: false,
       isLandscape: true,
@@ -1148,7 +1148,7 @@ class InstagramScraper {
     let previousPostCount = 0;
     let stableCount = 0;
     let lastScrollHeight = 0;
-    const maxScrollAttempts = 20; // Increased to ensure we get everything
+    const maxScrollAttempts = 200; // Increased to ensure we get everything
     
     for (let attempt = 0; attempt < maxScrollAttempts; attempt++) {
       // Check if we're still on the correct page
@@ -1214,8 +1214,30 @@ class InstagramScraper {
         stableCount++;
         console.log(`⏸️ No changes detected (posts: ${currentPostCount}, height: ${currentScrollHeight}) - stable count: ${stableCount}`);
         
-        // If nothing changed for 3 attempts, we've reached the end
-        if (stableCount >= 3) {
+        // If nothing changed for 5 attempts (reduced from 10), try one final aggressive scroll
+        if (stableCount >= 5) {
+          console.log('⚡ Making final aggressive scroll attempt...');
+          await this.page.evaluate(() => {
+            // Scroll to absolute bottom
+            window.scrollTo(0, document.body.scrollHeight);
+          });
+          await this.wait(2000); // Reduced from 3000
+          
+          // Check if this revealed more content
+          const finalCheck = await this.page.evaluate(() => {
+            const totalPosts = document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]').length;
+            return {
+              currentPostCount: totalPosts,
+              currentScrollHeight: document.body.scrollHeight
+            };
+          });
+          
+          if (finalCheck.currentPostCount > currentPostCount) {
+            console.log(`🎯 Found ${finalCheck.currentPostCount - currentPostCount} more posts after aggressive scroll!`);
+            stableCount = 0; // Reset and continue
+            continue;
+          }
+          
           console.log('✅ Reached end of page - all posts loaded');
           break;
         }
@@ -1251,13 +1273,12 @@ class InstagramScraper {
         if (scrollStep > 0) {
           // Scroll more gradually
           window.scrollBy(0, scrollStep);
-          await new Promise(resolve => setTimeout(resolve, 500)); // Longer wait
+          await new Promise(resolve => setTimeout(resolve, 1500)); // Longer wait for content loading
         }
       });
       
-      // Wait for new content to load - increased time
-      console.log('⏳ Waiting for content to load...');
-      await this.wait(4000); // Increased wait time
+      // Wait for new content to load - reduced time
+      await this.wait(1000); // Reduced from 4000
       
       // Only check for modals occasionally during scrolling to avoid false positives
       if (attempt % 5 === 0) {
@@ -1270,298 +1291,331 @@ class InstagramScraper {
       }
     }
     
-    // Final verification
+    // Final verification and get complete post list
     const finalStats = await this.page.evaluate(() => {
-      const postSelectors = [
-        "a[href*=\"/p/\"]",
-        "a[href*=\"/reel/\"]",
-        "article a[href*=\"/p/\"]",
-        "article a[href*=\"/reel/\"]"
-      ];
+      const postLinks = document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]');
+      const uniquePosts = new Map();
       
-      let totalPosts = 0;
-      for (const selector of postSelectors) {
-        const elements = document.querySelectorAll(selector);
-        if (elements.length > totalPosts) {
-          totalPosts = elements.length;
+      postLinks.forEach(link => {
+        const href = link.href;
+        if (href && (href.includes('/p/') || href.includes('/reel/'))) {
+          const match = href.match(/\/(?:p|reel)\/([^\/\?]+)/);
+          if (match) {
+            const postId = match[1];
+            if (!uniquePosts.has(postId)) {
+              uniquePosts.set(postId, {
+                id: postId,
+                url: href,
+                type: href.includes('/reel/') ? 'reel' : 'post'
+              });
+            }
+          }
         }
-      }
+      });
       
       return {
-        totalPosts: totalPosts,
+        totalPosts: uniquePosts.size,
         scrollHeight: document.body.scrollHeight,
-        isAtBottom: window.innerHeight + window.scrollY >= document.body.scrollHeight - 50
+        isAtBottom: window.innerHeight + window.scrollY >= document.body.scrollHeight - 50,
+        posts: Array.from(uniquePosts.values())
       };
     });
     
-    console.log(`📊 Final stats: ${finalStats.totalPosts} posts, height: ${finalStats.scrollHeight}px, at bottom: ${finalStats.isAtBottom}`);
+    console.log(`📊 Final stats: ${finalStats.totalPosts} unique posts, height: ${finalStats.scrollHeight}px, at bottom: ${finalStats.isAtBottom}`);
+    
+    // Log the complete post list
+    console.log('\n📋 COMPLETE POST LIST:');
+    console.log('========================');
+    finalStats.posts.forEach((post, index) => {
+      console.log(`${index + 1}. ${post.type.toUpperCase()}: ${post.id} - ${post.url}`);
+    });
+    console.log('========================\n');
+    
+    // Store the post list for later use
+    this.discoveredPosts = finalStats.posts;
+    
+    return finalStats.posts;
   }
 
   async extractPosts() {
     console.log("🔍 Extracting posts data...");
     
-    return await this.page.evaluate(() => {
-      const posts = [];
-      const seenUrls = new Set(); // Track unique posts
-      
-      // Enhanced selectors for Instagram posts with better targeting
-      const postSelectors = [
-        // Main post containers - more specific targeting
-        "main article a[href*=\"/p/\"]",
-        "main article a[href*=\"/reel/\"]",
+    try {
+      // First, let's debug what HTML structure we're actually seeing
+      const debugInfo = await this.page.evaluate(() => {
+        // Get some sample HTML to understand the structure
+        const body = document.body;
+        const main = document.querySelector('main');
+        const articles = document.querySelectorAll('article');
         
-        // Grid view posts
-        "div[style*=\"padding-bottom\"] a[href*=\"/p/\"]",
-        "div[style*=\"padding-bottom\"] a[href*=\"/reel/\"]",
+        // Sample some post links
+        const allLinks = Array.from(document.querySelectorAll('a')).slice(0, 20);
+        const postLinks = allLinks.filter(a => a.href && (a.href.includes('/p/') || a.href.includes('/reel/')));
         
-        // Role-based selectors for posts
-        "[role=\"link\"][href*=\"/p/\"]",
-        "[role=\"link\"][href*=\"/reel/\"]",
+        return {
+          bodyHtml: body ? body.innerHTML.substring(0, 1000) + '...' : 'No body found',
+          mainHtml: main ? main.innerHTML.substring(0, 1000) + '...' : 'No main found',
+          articleCount: articles.length,
+          allLinksCount: allLinks.length,
+          postLinksCount: postLinks.length,
+          samplePostLinks: postLinks.slice(0, 5).map(a => ({
+            href: a.href,
+            outerHTML: a.outerHTML.substring(0, 200) + '...',
+            parentHTML: a.parentElement ? a.parentElement.outerHTML.substring(0, 300) + '...' : 'No parent'
+          }))
+        };
+      });
+      
+      console.log("🔍 DEBUG: Page structure analysis:");
+      console.log("📊 Article elements found:", debugInfo.articleCount);
+      console.log("📊 Total links found:", debugInfo.allLinksCount);
+      console.log("📊 Post links found:", debugInfo.postLinksCount);
+      console.log("🔗 Sample post links:", JSON.stringify(debugInfo.samplePostLinks, null, 2));
+      
+      // If we found very few posts, dump more HTML structure
+      if (debugInfo.postLinksCount < 5) {
+        console.log("⚠️ Very few posts found, dumping HTML structure:");
+        console.log("📄 Body HTML sample:", debugInfo.bodyHtml);
+        console.log("📄 Main HTML sample:", debugInfo.mainHtml);
+      }
+      
+      // Now proceed with the original extraction logic but with better selectors
+      const selectorCounts = await this.page.evaluate(() => {
+        const postSelectors = [
+          "a[href*=\"/p/\"]",
+          "a[href*=\"/reel/\"]",
+          "article a",
+          "main a",
+          "[role=\"link\"]",
+          "div a[href*=\"instagram.com\"]"
+        ];
         
-        // Additional fallbacks
-        "a[href*=\"/tv/\"]", // IGTV posts
-        "article a[href*=\"/p/\"]",
-        "article a[href*=\"/reel/\"]"
-      ];
-      
-      console.log("🔍 Extracting posts with enhanced media detection...");
-      
-      // Try each selector and collect all unique posts
-      for (const selector of postSelectors) {
-        try {
+        const counts = {};
+        for (const selector of postSelectors) {
           const elements = document.querySelectorAll(selector);
-          console.log(`📊 Selector "${selector}" found ${elements.length} elements`);
+          counts[selector] = elements.length;
+        }
+        return counts;
+      });
+      
+      console.log("📊 Post selector counts:", selectorCounts);
+      
+      // Save HTML structure to file for debugging
+      const htmlDump = await this.page.evaluate(() => {
+        const main = document.querySelector('main');
+        return {
+          title: document.title,
+          url: window.location.href,
+          mainHTML: main ? main.outerHTML.substring(0, 10000) : 'No main found',
+          bodyHTML: document.body.outerHTML.substring(0, 5000)
+        };
+      });
+      
+      // Save to file for inspection
+      const fs = require('fs');
+      const path = require('path');
+      const debugFile = path.join(__dirname, 'instagram-debug.html');
+      const debugContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Instagram Debug - ${htmlDump.title}</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        pre { white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>Instagram Page Debug</h1>
+    <div class="section">
+        <h2>Page Info</h2>
+        <p><strong>URL:</strong> ${htmlDump.url}</p>
+        <p><strong>Title:</strong> ${htmlDump.title}</p>
+    </div>
+    <div class="section">
+        <h2>Main Element HTML</h2>
+        <pre>${htmlDump.mainHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+    </div>
+    <div class="section">
+        <h2>Body HTML (first 5000 chars)</h2>
+        <pre>${htmlDump.bodyHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+    </div>
+</body>
+</html>`;
+      
+      fs.writeFileSync(debugFile, debugContent);
+      console.log(`📄 HTML structure saved to: ${debugFile}`);
+      console.log("💡 Open this file in a browser to inspect the HTML structure");
+      
+      // Find the selector with the most matches
+      const bestSelector = Object.keys(selectorCounts).reduce((a, b) => 
+        selectorCounts[a] > selectorCounts[b] ? a : b
+      );
+      
+      console.log(`🎯 Using best selector: "${bestSelector}" (${selectorCounts[bestSelector]} elements)`);
+      
+      const posts = await this.page.evaluate((selectedSelector) => {
+        const posts = [];
+        const seenUrls = new Set();
+        
+        try {
+          const elements = document.querySelectorAll(selectedSelector);
           
-          elements.forEach((element, index) => {
+          for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            
             try {
-              let postUrl = '';
-              let mediaData = { images: [], videos: [], type: 'unknown' };
-              let description = '';
+              let postUrl = "";
               
-              // Get post URL and clean it
-              if (element.tagName === 'A') {
+              // Get post URL - handle both direct links and nested links
+              if (element.tagName === "A") {
                 postUrl = element.href;
               } else {
-                const linkElement = element.querySelector('a[href*="/p/"], a[href*="/reel/"], a[href*="/tv/"]');
-                postUrl = linkElement ? linkElement.href : '';
+                const linkElement = element.querySelector("a[href*=\"/p/\"], a[href*=\"/reel/\"], a[href*=\"/tv/\"]");
+                postUrl = linkElement ? linkElement.href : "";
               }
               
-              // Clean the URL - remove hash fragments and query parameters
-              if (postUrl) {
-                // Remove everything after # (hash)
-                if (postUrl.includes('#')) {
-                  postUrl = postUrl.split('#')[0];
-                }
-                // Keep query parameters for now as they might be needed
-                // Instagram URLs like: https://www.instagram.com/p/ABC123/
-                
-                // Ensure it's a proper Instagram post URL
-                if (!postUrl.includes('instagram.com/p/') && 
-                    !postUrl.includes('instagram.com/reel/') && 
-                    !postUrl.includes('instagram.com/tv/')) {
-                  console.log(`⚠️ Skipping invalid URL: ${postUrl}`);
-                  return;
-                }
+              // Clean the URL
+              if (postUrl && postUrl.includes("#")) {
+                postUrl = postUrl.split("#")[0];
               }
               
-              // Skip if we've already seen this URL
+              // Skip if we've already seen this URL or it's invalid
               if (!postUrl || seenUrls.has(postUrl)) {
-                return;
+                continue;
               }
               
-              // Determine post type from URL
-              if (postUrl.includes('/reel/') || postUrl.includes('/tv/')) {
-                mediaData.type = 'video';
-              } else if (postUrl.includes('/p/')) {
-                mediaData.type = 'mixed'; // Can be image or video, need to check content
+              // More flexible URL validation
+              const isValidInstagramUrl = postUrl.includes("instagram.com") &&
+                                        (postUrl.includes("/p/") ||
+                                         postUrl.includes("/reel/") ||
+                                         postUrl.includes("/tv/"));
+              
+              if (!isValidInstagramUrl) {
+                continue;
               }
               
-              // Enhanced media extraction - look for multiple media files
-              const mediaContainer = element.closest('article') || element.closest('div');
-              
-              if (mediaContainer) {
-                // Look for images with better resolution detection
-                const images = mediaContainer.querySelectorAll('img');
-                images.forEach(img => {
-                  if (img.src && img.src.startsWith('http')) {
-                    // Skip tiny profile images and icons
-                    if (img.width > 100 && img.height > 100) {
-                      // Try to get higher resolution version
-                      let imageUrl = img.src;
-                      
-                      // Instagram image URL patterns - try to get full size
-                      if (imageUrl.includes("scontent")) {
-                        // Remove size restrictions to get full resolution
-                        imageUrl = imageUrl.replace(/&[^&]*?(s\d+x\d+|c\d+\.\d+\.\d+\.\d+)[^&]*/, "");
-                        imageUrl = imageUrl.replace(/\?.*$/, ""); // Remove all parameters for full size
-                        
-                        // Try to replace with higher resolution parameters
-                        if (!imageUrl.includes("_n.")) {
-                          // Instagram uses different suffixes for different sizes
-                          // _n = normal, _s = small, no suffix = original
-                          imageUrl = imageUrl.replace(/_[a-z]\./, ".");
-                        }
-                      }
-                      
-                      // Add to media data with better metadata
-                      mediaData.images.push({
-                        url: imageUrl,
-                        originalUrl: img.src, // Keep original for fallback
-                        alt: img.alt || "",
-                        width: img.width || 0,
-                        height: img.height || 0
-                      });
-                      
-                      // Update description from alt text if available
-                      if (img.alt && img.alt.length > description.length) {
-                        description = img.alt;
-                      }
+              // Extract post ID with better error handling
+              let postId = "";
+              try {
+                const postIdMatches = [
+                  postUrl.match(/\/p\/([^\/\?]+)/),
+                  postUrl.match(/\/reel\/([^\/\?]+)/),
+                  postUrl.match(/\/tv\/([^\/\?]+)/)
+                ];
+                
+                for (const match of postIdMatches) {
+                  if (match && match[1]) {
+                    postId = match[1];
+                    break;
+                  }
+                }
+                
+                if (!postId) {
+                  // Generate fallback ID
+                  const urlParts = postUrl.split("/");
+                  for (let j = urlParts.length - 1; j >= 0; j--) {
+                    if (urlParts[j] && urlParts[j].length > 5) {
+                      postId = urlParts[j].split("?")[0];
+                      break;
                     }
                   }
-                });
-                
-                // Look for videos
-                const videos = mediaContainer.querySelectorAll('video');
-                videos.forEach(video => {
-                  if (video.src && video.src.startsWith('http')) {
-                    mediaData.videos.push({
-                      url: video.src,
-                      poster: video.poster || '',
-                      width: video.videoWidth || video.width || 0,
-                      height: video.videoHeight || video.height || 0
-                    });
-                    mediaData.type = 'video';
-                  }
                   
-                  // Also check for source elements within video
-                  const sources = video.querySelectorAll('source');
-                  sources.forEach(source => {
-                    if (source.src && source.src.startsWith('http')) {
-                      mediaData.videos.push({
-                        url: source.src,
-                        type: source.type || 'video/mp4',
-                        width: video.videoWidth || video.width || 0,
-                        height: video.videoHeight || video.height || 0
+                  if (!postId) {
+                    postId = `post-${Date.now()}-${i}`;
+                  }
+                }
+              } catch (idError) {
+                postId = `post-${Date.now()}-${i}`;
+              }
+              
+              // Determine post type
+              let postType = "image";
+              if (postUrl.includes("/reel/") || postUrl.includes("/tv/")) {
+                postType = "video";
+              }
+              
+              // Create basic media data structure
+              const mediaData = {
+                images: [],
+                videos: [],
+                type: postType
+              };
+              
+              // Try to find associated media elements
+              try {
+                // Look for images or videos near this link
+                const container = element.closest("div") || element.parentElement;
+                if (container) {
+                  const imgs = container.querySelectorAll("img");
+                  const videos = container.querySelectorAll("video");
+                  
+                  imgs.forEach(img => {
+                    if (img.src && img.src.startsWith("http") &&
+                        !img.src.includes("profile") && !img.src.includes("avatar") &&
+                        img.width > 50 && img.height > 50) {
+                      mediaData.images.push({
+                        url: img.src,
+                        alt: img.alt || "",
+                        width: img.naturalWidth || img.width,
+                        height: img.naturalHeight || img.height
                       });
-                      mediaData.type = 'video';
                     }
                   });
-                });
-                
-                // Look for Instagram's video/image containers with data attributes
-                const mediaElements = mediaContainer.querySelectorAll('[style*="background-image"], [data-src], [src]');
-                mediaElements.forEach(el => {
-                  // Background images (often used for video thumbnails)
-                  const bgStyle = el.style.backgroundImage;
-                  if (bgStyle && bgStyle.includes('url(')) {
-                    const bgUrl = bgStyle.match(/url\(['"]?([^'"]+)['"]?\)/);
-                    if (bgUrl && bgUrl[1] && bgUrl[1].includes('scontent')) {
-                      let imageUrl = bgUrl[1];
-                      // Clean URL for better resolution
-                      imageUrl = imageUrl.replace(/&[^&]*?(s\d+x\d+|c\d+\.\d+\.\d+\.\d+)[^&]*/, '');
-                      imageUrl = imageUrl.replace(/\?.*$/, '');
-                      
-                      mediaData.images.push({
-                        url: imageUrl,
-                        alt: el.getAttribute('aria-label') || '',
-                        width: 0,
-                        height: 0,
-                        isBackground: true
+                  
+                  videos.forEach(video => {
+                    if (video.src || video.currentSrc) {
+                      mediaData.videos.push({
+                        url: video.src || video.currentSrc,
+                        type: video.type || "video/mp4",
+                        width: video.videoWidth || video.offsetWidth,
+                        height: video.videoHeight || video.offsetHeight,
+                        poster: video.poster || ""
                       });
                     }
-                  }
-                  
-                  // Data-src attributes (lazy loading)
-                  const dataSrc = el.getAttribute('data-src');
-                  if (dataSrc && dataSrc.includes('scontent')) {
-                    let imageUrl = dataSrc;
-                    imageUrl = imageUrl.replace(/&[^&]*?(s\d+x\d+|c\d+\.\d+\.\d+\.\d+)[^&]*/, '');
-                    imageUrl = imageUrl.replace(/\?.*$/, '');
-                    
-                    mediaData.images.push({
-                      url: imageUrl,
-                      alt: el.getAttribute('alt') || '',
-                      width: 0,
-                      height: 0
-                    });
-                  }
-                });
-              }
-              
-              // Remove duplicate media by URL
-              mediaData.images = mediaData.images.filter((img, index, arr) => 
-                arr.findIndex(i => i.url === img.url) === index
-              );
-              mediaData.videos = mediaData.videos.filter((vid, index, arr) => 
-                arr.findIndex(v => v.url === vid.url) === index
-              );
-              
-              // Determine final media type
-              if (mediaData.videos.length > 0) {
-                mediaData.type = 'video';
-              } else if (mediaData.images.length > 0) {
-                mediaData.type = 'image';
-              }
-              
-              // Extract post ID from URL
-              let postId = '';
-              const postIdMatches = [
-                postUrl.match(/\/p\/([^\/\?]+)/),
-                postUrl.match(/\/reel\/([^\/\?]+)/),
-                postUrl.match(/\/tv\/([^\/\?]+)/)
-              ];
-              
-              for (const match of postIdMatches) {
-                if (match && match[1]) {
-                  postId = match[1];
-                  break;
+                  });
                 }
+              } catch (mediaError) {
+                // Continue without media if extraction fails
               }
               
-              if (!postId) {
-                postId = `post-${Date.now()}-${index}`;
-              }
+              seenUrls.add(postUrl);
+              posts.push({
+                id: postId,
+                url: postUrl,
+                mediaData: mediaData,
+                description: `Instagram ${postType} post`,
+                title: `Instagram ${postType === "video" ? "Video" : "Post"} ${postId}`,
+                date: new Date().toISOString().split("T")[0],
+                type: postType
+              });
               
-              // Only add if we have media content
-              if (mediaData.images.length > 0 || mediaData.videos.length > 0) {
-                seenUrls.add(postUrl);
-                posts.push({
-                  id: postId,
-                  url: postUrl,
-                  mediaData: mediaData,
-                  description: description,
-                  title: `Instagram ${mediaData.type === 'video' ? 'Video' : 'Post'} ${postId}`,
-                  date: new Date().toISOString().split('T')[0],
-                  type: mediaData.type
-                });
-                
-                console.log(`📸 Found ${mediaData.type} post: ${postId} (${mediaData.images.length} images, ${mediaData.videos.length} videos)`);
-              }
-            } catch (error) {
-              console.error('Error extracting individual post:', error);
+            } catch (elementError) {
+              // Continue to next element if this one fails
+              continue;
             }
-          });
-        } catch (error) {
-          console.error(`Error with selector "${selector}":`, error);
+          }
+          
+        } catch (selectorError) {
+          // Return empty array if selector fails
+          return [];
         }
-      }
+        
+        return posts;
+        
+      }, bestSelector);
       
-      // Remove duplicates based on post ID
-      const uniquePosts = [];
-      const seenIds = new Set();
+      console.log(`✅ Successfully extracted ${posts.length} posts`);
+      console.log("📋 Post IDs:", posts.map(p => p.id).join(", "));
       
-      for (const post of posts) {
-        if (!seenIds.has(post.id)) {
-          seenIds.add(post.id);
-          uniquePosts.push(post);
-        }
-      }
+      return posts;
       
-      console.log(`🎯 Found ${uniquePosts.length} unique posts with media`);
-      console.log(`📊 Media breakdown: ${uniquePosts.filter(p => p.type === 'image').length} images, ${uniquePosts.filter(p => p.type === 'video').length} videos, ${uniquePosts.filter(p => p.type === 'mixed').length} mixed`);
-      
-      return uniquePosts;
-    });
+    } catch (error) {
+      console.error("❌ Error in extractPosts:", error.message);
+      console.error("� Stack trace:", error.stack);
+      return []; // Return empty array on error
+    }
   }
 
   async extractProfileInfo() {
@@ -2221,13 +2275,26 @@ class InstagramScraper {
       primaryType: primaryMediaType
     };
     
+    // Helper function to safely escape YAML strings
+    const escapeYaml = (str) => {
+      if (!str) return '';
+      // Replace problematic characters and use proper YAML escaping
+      return str
+        .replace(/\\/g, '\\\\')  // Escape backslashes
+        .replace(/"/g, '\\"')    // Escape quotes
+        .replace(/\n/g, '\\n')   // Escape newlines
+        .replace(/\r/g, '')      // Remove carriage returns
+        .replace(/\t/g, ' ')     // Replace tabs with spaces
+        .trim();
+    };
+
     const markdownContent = `---
-title: "${post.title}"
+title: "${escapeYaml(post.title)}"
 date: ${post.date}
-description: "${post.description || 'Beautiful jewelry piece from our Instagram collection'}"
+description: "${escapeYaml(post.description || 'Beautiful jewelry piece from our Instagram collection')}"
 image: "/img/${primaryMedia}"
 primary_media_type: "${primaryMediaType}"
-${allGallery.length > 0 ? `gallery:\n${allGallery.map(url => `  - "${url}"`).join('\n')}\n` : ''}${mediaFiles.images.length > 0 ? `images:\n${mediaFiles.images.map(img => `  - url: "${img.url}"\n    alt: "${img.alt}"\n    width: ${img.width}\n    height: ${img.height}`).join('\n')}\n` : ''}${mediaFiles.videos.length > 0 ? `videos:\n${mediaFiles.videos.map(vid => `  - url: "${vid.url}"\n    type: "${vid.type}"\n    width: ${vid.width}\n    height: ${vid.height}${vid.poster ? `\n    poster: "${vid.poster}"` : ''}`).join('\n')}\n` : ''}price: 0
+${allGallery.length > 0 ? `gallery:\n${allGallery.map(url => `  - "${url}"`).join('\n')}\n` : ''}${mediaFiles.images.length > 0 ? `images:\n${mediaFiles.images.map(img => `  - url: "${img.url}"\n    alt: "${escapeYaml(img.alt)}"\n    width: ${img.width}\n    height: ${img.height}`).join('\n')}\n` : ''}${mediaFiles.videos.length > 0 ? `videos:\n${mediaFiles.videos.map(vid => `  - url: "${vid.url}"\n    type: "${vid.type}"\n    width: ${vid.width}\n    height: ${vid.height}${vid.poster ? `\n    poster: "${vid.poster}"` : ''}`).join('\n')}\n` : ''}price: 0
 category: "Instagram Collection"
 in_stock: true
 featured: false
