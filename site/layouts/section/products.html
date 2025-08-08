@@ -17,7 +17,7 @@
             <img src="{{ .Params.image }}" alt="{{ .Title }}" class="w-100 db mb3 br2" style="height: 200px; object-fit: cover;">
             {{ end }}
             <h3 class="f4 b lh-title mb2">{{ .Title }}</h3>
-            <p class="f6 lh-copy mb2">{{ .Params.description }}</p>
+            <p class="f6 lh-copy mb2" style="display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; max-height: 6em; min-height: 4em;">{{ .Params.description | truncate 300 }}</p>
             {{ if .Params.price }}
             <p class="f3 primary b mb2">${{ .Params.price }}</p>
             {{ end }}
