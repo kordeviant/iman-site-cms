@@ -1,14 +1,33 @@
 <li class="dib ph2 raise">
   <a href="{{.link}}" class="link bg-white black db relative br-100 pa2">
-    <!-- see SVG tips for alt text https://www.w3.org/WAI/tutorials/images/tips/ -->
-    <svg width="16px" height="16px" class="db" aria-labelledby="alt-{{.svg}}">
-      <title id="alt-{{.svg}}">{{.alt}}</title>
+    <!-- Instagram: use PNG profile if exists, else SVG icon -->
+    {{ if eq .svg "icons-instagram" }}
+      {{ $pngPath := "/img/icons-instagram.png" }}
+      {{ $svgPath := "/img/icons-instagram.svg" }}
+      {{ if (fileExists (print "static" $pngPath)) }}
+        <img src="{{$pngPath}}" alt="{{.alt}}" width="32" height="32" style="border-radius:50%" />
+      {{ else }}
+        <svg width="16px" height="16px" class="db" aria-labelledby="alt-{{.svg}}">
+          <title id="alt-{{.svg}}">{{.alt}}</title>
+          {{ $imageFile := $svgPath }}
+          {{ with resources.Get $imageFile }}
+            {{ (resources.Minify .).Content | safe.HTML }}
+          {{ else }}
+            {{ warnf "missing icon %s" $imageFile }}
+          {{ end }}
+        </svg>
+      {{ end }}
+    {{ else }}
+      <!-- Default: SVG icon for other social icons -->
+      <svg width="16px" height="16px" class="db" aria-labelledby="alt-{{.svg}}">
+        <title id="alt-{{.svg}}">{{.alt}}</title>
         {{ $imageFile := (print "/img/" .svg ".svg") }}
         {{ with resources.Get $imageFile }}
           {{ (resources.Minify .).Content | safe.HTML }}
         {{ else }}
           {{ warnf "missing icon %s" $imageFile }}
         {{ end }}
-    </svg>
+      </svg>
+    {{ end }}
   </a>
 </li>

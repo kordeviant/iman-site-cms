@@ -1125,41 +1125,21 @@ class InstagramScraper {
         profileImageFile = await this.downloadProfileImage(profileInfo);
         profileInfo.profileImageFile = profileImageFile;
 
-        // Replace the Instagram logo with the profile image
+        // Always save the profile image as icons-instagram.png in static/img
         try {
-          const fs = require('fs');
-          const path = require('path');
-          // Path to the logo to replace
-          const logoPath = path.join(__dirname, '../site/assets/img/icons-instagram.svg');
-          // If the logo is actually in static/img, adjust path:
-          const fallbackLogoPath = path.join(__dirname, '../site/static/img/icons-instagram.svg');
-
-          // Use the downloaded profile image file (should be a jpg/png)
+          const fs = require("fs");
+          const path = require("path");
+          const destPath = path.join(__dirname, "../site/static/img/icons-instagram.png");
           if (fs.existsSync(profileImageFile)) {
-            // Prefer replacing in assets/img, fallback to static/img
-            let replaced = false;
-            if (fs.existsSync(logoPath)) {
-              fs.copyFileSync(profileImageFile, logoPath);
-              replaced = true;
-              console.log(`🔄 Replaced logo at: ${logoPath}`);
-            }
-            if (fs.existsSync(fallbackLogoPath)) {
-              fs.copyFileSync(profileImageFile, fallbackLogoPath);
-              replaced = true;
-              console.log(`🔄 Replaced logo at: ${fallbackLogoPath}`);
-            }
-            if (!replaced) {
-              // If logo doesn't exist, just copy to static/img as icons-instagram.png
-              const newLogoPath = path.join(__dirname, '../site/static/img/icons-instagram.png');
-              fs.copyFileSync(profileImageFile, newLogoPath);
-              console.log(`➕ Copied profile image as logo: ${newLogoPath}`);
-            }
+            fs.copyFileSync(profileImageFile, destPath);
+            console.log(`🔄 Saved Instagram profile image as: ${destPath}`);
           } else {
-            console.warn('⚠️ Profile image file not found for logo replacement:', profileImageFile);
+            console.warn("⚠️ Profile image file not found for logo replacement:", profileImageFile);
           }
         } catch (err) {
-          console.error('❌ Failed to replace Instagram logo with profile image:', err.message);
+          console.error("❌ Failed to save Instagram profile image as PNG:", err.message);
         }
+        // NOTE: Update your frontend to use /img/icons-instagram.png if it exists, otherwise fallback to icons-instagram.svg
       }
 
       // Return both posts and profile info
