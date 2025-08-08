@@ -1,0 +1,40 @@
+
+      <svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+        
+      <defs>
+        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+          <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="silverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#E5E5E5;stop-opacity:1" />
+          <stop offset="50%" style="stop-color:#C0C0C0;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#A0A0A0;stop-opacity:1" />
+        </linearGradient>
+        <radialGradient id="gemGradient" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:0.9" />
+          <stop offset="50%" style="stop-color:#4169E1;stop-opacity:0.7" />
+          <stop offset="100%" style="stop-color:#191970;stop-opacity:0.8" />
+        </radialGradient>
+      </defs>
+    
+        <rect width="100%" height="100%" fill="#f8f8f8"/>
+        
+        <!-- Chain -->
+        <path d="M 50 80 Q 300 180 550 80" 
+              fill="none" stroke="url(#goldGradient)" stroke-width="8"/>
+        
+        <!-- Chain links -->
+        <ellipse cx="50" cy="80" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="95.45454545454545" cy="89.58851077208406" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="140.9090909090909" cy="96.82941969615793" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="186.36363636363637" cy="99.9498997320811" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="231.8181818181818" cy="98.18594853651364" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="277.27272727272725" cy="91.96944288207914" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="322.72727272727275" cy="82.82240016119735" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="368.1818181818182" cy="72.98433544620761" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="413.6363636363636" cy="64.86395009384144" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="459.09090909090907" cy="60.44939764669806" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="504.54545454545456" cy="60.82151450673723" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/><ellipse cx="550" cy="65.88919348859216" rx="6" ry="4" fill="url(#silverGradient)" stroke="#B8860B"/>
+        
+        <!-- Pendant -->
+        <polygon points="300,140 320,160 300,200 280,160"
+                 fill="url(#gemGradient)" stroke="#000080" stroke-width="2"/>
+        
+        <text x="300" y="380" text-anchor="middle" 
+              font-family="serif" font-size="16" fill="#B8860B">
+          Elegant Necklace
+        </text>
+      </svg>
+    

@@ -1,6 +1,6 @@
 ---
 title: "Instagram Post C-hh9O3u8LA"
-date: 2025-08-05
+date: 2025-08-08
 description: "Golden Girl and boy supplement and balance of nature🧑👧🌳🌴🌵
 
 پلاک اویز طلا  750 
@@ -13,14 +13,16 @@ Clarity: IF
 Cut: brilliant 
 ____________________________
 #Microsetting #microsettingtrainer #Stonesetting #pavesetting #sidebysidesetting #necklace #gold750 #diamondsetter #jewellryroja"
-image: "/img/products/C-hh9O3u8LA.png"
-pricing:
-  - text: "Contact for pricing"
-    price: ""
+image: "/img/instagram-C-hh9O3u8LA.jpg"
+price: 0
+category: "Instagram Collection"
+in_stock: true
+featured: false
 weight: 100
 draft: false
 instagram_post: "https://www.instagram.com/6_side_jewelry/p/C-hh9O3u8LA/"
 instagram_id: "C-hh9O3u8LA"
+instagram_account: "6_side_jewelry"
 ---
 
 Golden Girl and boy supplement and balance of nature🧑👧🌳🌴🌵
@@ -40,6 +42,8 @@ ____________________________
 
 - **Source**: Instagram Collection
 - **Post ID**: C-hh9O3u8LA
-- **Date Added**: 2025-08-05
+- **Account**: 6_side_jewelry
+- **Date Added**: 2025-08-08
+
 
 Contact us to learn more about this piece or to place an order.

@@ -1,3 +1,24 @@
+/**
+ * Enhanced Instagram Scraper with Persistent Browser Data
+ * 
+ * Features:
+ * - Persistent browser data stored in d:\puppeteer-data
+ * - Maintains login sessions across script runs (no more repeated logins!)
+ * - Acts like a normal browser with saved cookies, cache, and preferences
+ * - Anti-detection with stealth configuration
+ * - Modal/captcha handling with manual intervention
+ * - Complete page sync with existing CMS products
+ * - Enhanced media handling (images + videos)
+ * - Professional CMS integration with Hugo/Decap
+ * 
+ * The persistent browser data means:
+ * ✅ Login once, stay logged in across script runs
+ * ✅ Browser remembers your preferences and settings
+ * ✅ Looks more like regular browser usage to Instagram
+ * ✅ Faster startup times (no need to rebuild browser state)
+ * ✅ Session persistence even after script restarts
+ */
+
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
@@ -13,20 +34,206 @@ class InstagramScraper {
     this.credentials = credentials; // { username, password }
     this.isLoggedIn = false;
     this.outputDir = path.join(__dirname, '../site/content/products');
-    this.imagesDir = path.join(__dirname, '../site/static/img/products');
+    this.imagesDir = path.join(__dirname, '../site/static/img'); // Main CMS media folder
+    this.instagramDir = path.join(__dirname, '../site/static/img'); // Same as main folder for CMS visibility
     this.sessionDir = path.join(__dirname, '../.instagram-session');
     this.cookiesFile = path.join(this.sessionDir, 'cookies.json');
     this.sessionFile = path.join(this.sessionDir, 'session.json');
+    this.userDataDir = "d:\\puppeteer-data"; // Persistent browser data directory
     
     // Ensure directories exist
     this.ensureDirectoryExists(this.outputDir);
     this.ensureDirectoryExists(this.imagesDir);
     this.ensureDirectoryExists(this.sessionDir);
+    this.ensureDirectoryExists(this.userDataDir);
   }
 
   // Utility function to replace deprecated waitForTimeout
   async wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async waitForModalHandling(context = "general") {
+    // Skip modal checking when we're just viewing posts/content
+    if (context === "viewing_posts" || context === "extracting_data") {
+      return false;
+    }
+    
+    console.log(`🔍 Checking for modals/captchas (context: ${context})...`);
+    
+    const modalSelectors = [
+      // Only check for actual security/captcha modals, not content modals
+      '[data-testid="captcha"]',
+      'iframe[src*="recaptcha"]',
+      'iframe[title*="reCAPTCHA"]',
+      '.g-recaptcha',
+      '#captcha',
+      '[aria-label*="captcha"]',
+      '[class*="captcha"]',
+      'div[class*="challenge"]',
+      
+      // Security check modals (be more specific)
+      'div:contains("We Detected Unusual Activity")',
+      'div:contains("Suspicious Login Attempt")',
+      'div:contains("Confirm Your Identity")',
+      'div:contains("Security Check")',
+      'div:contains("Please confirm")',
+      'div:contains("Challenge Required")',
+      
+      // Phone/Email verification
+      'div:contains("Enter Confirmation Code")',
+      'div:contains("Two-Factor Authentication")',
+      'div:contains("Login Code")',
+      'div:contains("We sent you a code")',
+      
+      // Rate limiting modals (only these specific ones)
+      'div:contains("Try Again Later")',
+      'div:contains("Please wait a few minutes")',
+      'div:contains("Too many requests")',
+      'div:contains("Action Blocked")'
+    ];
+    
+    let modalFound = false;
+    let modalType = "unknown";
+    
+    for (const selector of modalSelectors) {
+      try {
+        let element = null;
+        
+        // Handle text-based selectors
+        if (selector.includes(":contains(")) {
+          const searchText = selector.match(/:contains\("([^"]+)"\)/)[1];
+          const allElements = await this.page.$$("div, span, p, h1, h2, h3");
+          
+          for (const el of allElements) {
+            const text = await this.page.evaluate((elem) => elem.textContent?.trim(), el);
+            if (text && text.includes(searchText)) {
+              element = el;
+              modalType = searchText;
+              break;
+            }
+          }
+        } else {
+          // Regular CSS selectors
+          element = await this.page.$(selector);
+          if (element) {
+            modalType = selector;
+          }
+        }
+        
+        if (element) {
+          // Check if the modal is actually visible and blocking
+          const isVisible = await this.page.evaluate((el) => {
+            const rect = el.getBoundingClientRect();
+            const style = window.getComputedStyle(el);
+            const isVisibleElement = rect.width > 0 && rect.height > 0 &&
+                   style.display !== "none" &&
+                   style.visibility !== "hidden" &&
+                   style.opacity !== "0";
+            
+            // Additional check: is it actually a blocking modal?
+            const isModal = style.position === "fixed" || 
+                          style.position === "absolute" ||
+                          el.closest('[role="dialog"]') !== null ||
+                          el.closest('[aria-modal="true"]') !== null;
+            
+            return isVisibleElement && isModal;
+          }, element);
+          
+          if (isVisible) {
+            modalFound = true;
+            console.log(`🚨 BLOCKING MODAL DETECTED: ${modalType}`);
+            break;
+          }
+        }
+      } catch (e) {
+        // Continue checking other selectors
+        continue;
+      }
+    }
+    
+    if (modalFound) {
+      console.log("\n🛑 ===============================================");
+      console.log("🚨 MANUAL INTERVENTION REQUIRED");
+      console.log("===============================================");
+      console.log(`📝 Modal Type: ${modalType}`);
+      console.log("👤 Please handle the modal/captcha manually:");
+      console.log("   1. Complete any captcha if present");
+      console.log("   2. Enter verification codes if requested");
+      console.log("   3. Handle any security challenges");
+      console.log("   4. Click through any required buttons");
+      console.log("   5. Wait until you return to normal Instagram page");
+      console.log("\n⏳ Script will automatically continue when modal is gone...");
+      console.log("💡 Press Ctrl+C if you want to cancel");
+      console.log("===============================================\n");
+      
+      // Wait for modal to disappear
+      let modalStillPresent = true;
+      let checkCount = 0;
+      const maxChecks = 300; // 5 minutes maximum
+      
+      while (modalStillPresent && checkCount < maxChecks) {
+        await this.wait(1000); // Check every second
+        checkCount++;
+        
+        // Re-check if modal is still present
+        modalStillPresent = false;
+        
+        for (const selector of modalSelectors) {
+          try {
+            let element = null;
+            
+            if (selector.includes(":contains(")) {
+              const searchText = selector.match(/:contains\("([^"]+)"\)/)[1];
+              const allElements = await this.page.$$("div, span, p, h1, h2, h3");
+              
+              for (const el of allElements) {
+                const text = await this.page.evaluate((elem) => elem.textContent?.trim(), el);
+                if (text && text.includes(searchText)) {
+                  element = el;
+                  break;
+                }
+              }
+            } else {
+              element = await this.page.$(selector);
+            }
+            
+            if (element) {
+              const isVisible = await this.page.evaluate((el) => {
+                const rect = el.getBoundingClientRect();
+                const style = window.getComputedStyle(el);
+                return rect.width > 0 && rect.height > 0 &&
+                       style.display !== "none" &&
+                       style.visibility !== "hidden" &&
+                       style.opacity !== "0";
+              }, element);
+              
+              if (isVisible) {
+                modalStillPresent = true;
+                break;
+              }
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        
+        // Show progress every 10 seconds
+        if (checkCount % 10 === 0) {
+          console.log(`⏳ Still waiting for modal to be handled... (${checkCount}s elapsed)`);
+        }
+      }
+      
+      if (modalStillPresent) {
+        throw new Error("Modal handling timeout: Please complete the required actions within 5 minutes");
+      } else {
+        console.log("✅ Modal handled successfully! Continuing...");
+        // Wait a bit more to ensure page stabilizes
+        await this.wait(3000);
+      }
+    }
+    
+    return modalFound;
   }
 
   async handleCookieConsent() {
@@ -109,6 +316,13 @@ class InstagramScraper {
     
     while (Date.now() - startTime < maxWaitTime) {
       try {
+        // First check for modals/captchas that need manual handling
+        const modalHandled = await this.waitForModalHandling();
+        if (modalHandled) {
+          // If a modal was handled, continue checking for login completion
+          console.log('✅ Modal handled, continuing login check...');
+        }
+        
         const currentUrl = this.page.url();
         
         // Check for successful login indicators
@@ -171,28 +385,31 @@ class InstagramScraper {
     try {
       console.log('🤖 Adding human-like behavior...');
       
-      // Random scroll to simulate reading
+      // More conservative human behavior - reduced randomness
+      // Random scroll to simulate reading (smaller amounts)
       await this.page.evaluate(() => {
-        const scrollAmount = Math.random() * 300 + 100;
+        const scrollAmount = Math.random() * 100 + 50; // Reduced from 300+100
         window.scrollBy(0, scrollAmount);
       });
       
-      // Random wait between 1-3 seconds
-      await this.wait(1000 + Math.random() * 2000);
+      // Shorter wait times
+      await this.wait(500 + Math.random() * 1000); // Reduced from 1000 + 2000
       
-      // Random mouse movement
-      const viewport = this.page.viewport();
-      const x = Math.random() * viewport.width;
-      const y = Math.random() * viewport.height;
-      
-      await this.page.mouse.move(x, y, { steps: 10 });
-      await this.wait(500 + Math.random() * 1000);
-      
-      // Sometimes click somewhere random (but safe)
-      if (Math.random() > 0.7) {
-        await this.page.mouse.click(x, y);
-        await this.wait(500);
+      // Reduce mouse movement frequency and distance
+      if (Math.random() > 0.8) { // Reduced from 0.7
+        const viewport = this.page.viewport();
+        const x = Math.random() * (viewport.width * 0.5) + (viewport.width * 0.25); // Stay in center area
+        const y = Math.random() * (viewport.height * 0.5) + (viewport.height * 0.25); // Stay in center area
+        
+        await this.page.mouse.move(x, y, { steps: 5 }); // Reduced steps from 10
+        await this.wait(200 + Math.random() * 300); // Reduced wait time
       }
+      
+      // Remove random clicking during scrolling - this might cause navigation
+      // if (Math.random() > 0.7) {
+      //   await this.page.mouse.click(x, y);
+      //   await this.wait(500);
+      // }
       
     } catch (error) {
       console.log('⚠️  Human behavior simulation failed:', error.message);
@@ -424,6 +641,25 @@ class InstagramScraper {
     }
   }
 
+  checkPersistentDataExists() {
+    try {
+      // Check if the browser data directory has been used before
+      const browserDataExists = fs.existsSync(this.userDataDir) && 
+                               fs.readdirSync(this.userDataDir).length > 0;
+      
+      if (browserDataExists) {
+        console.log("📁 Found existing browser data - login may be preserved");
+        return true;
+      } else {
+        console.log("📁 No existing browser data found - fresh start");
+        return false;
+      }
+    } catch (error) {
+      console.log("⚠️ Could not check browser data directory");
+      return false;
+    }
+  }
+
   ensureDirectoryExists(dirPath) {
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
@@ -431,58 +667,62 @@ class InstagramScraper {
   }
 
   async init() {
-    console.log('🚀 Starting Instagram scraper...');
-    console.log('🌐 Using proxy: localhost:10808');
+    console.log("🚀 Starting Instagram scraper...");
+    console.log("🌐 Using proxy: localhost:10808");
+    console.log("💾 Using persistent browser data: d:\\puppeteer-data");
+    
+    // Check if we have existing browser data
+    this.checkPersistentDataExists();
     
     try {
       this.browser = await puppeteer.launch({
         headless: false, // Keep visible to appear more human
         defaultViewport: null,
+        userDataDir: this.userDataDir, // Use persistent browser data directory
         args: [
           // Proxy configuration
-          '--proxy-server=localhost:10808',
+          "--proxy-server=localhost:10808",
           
           // Basic security
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
           
           // Anti-detection measures
-          '--disable-blink-features=AutomationControlled',
-          '--disable-features=VizDisplayCompositor',
-          '--disable-automation',
-          '--disable-web-security',
-          '--disable-features=TranslateUI',
-          '--disable-ipc-flooding-protection',
-          '--disable-renderer-backgrounding',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-client-side-phishing-detection',
-          '--disable-sync',
-          '--disable-default-apps',
-          '--disable-extensions',
-          '--disable-plugins',
-          '--disable-hang-monitor',
-          '--disable-popup-blocking',
-          '--disable-prompt-on-repost',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-features=TranslateUI,BlinkGenPropertyTrees',
-          '--no-first-run',
-          '--no-default-browser-check',
-          '--no-zygote',
-          '--disable-gpu',
+          "--disable-blink-features=AutomationControlled",
+          "--disable-features=VizDisplayCompositor",
+          "--disable-automation",
+          "--disable-web-security",
+          "--disable-features=TranslateUI",
+          "--disable-ipc-flooding-protection",
+          "--disable-renderer-backgrounding",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-client-side-phishing-detection",
+          "--disable-sync",
+          "--disable-default-apps",
+          "--disable-extensions",
+          "--disable-plugins",
+          "--disable-hang-monitor",
+          "--disable-popup-blocking",
+          "--disable-prompt-on-repost",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-features=TranslateUI,BlinkGenPropertyTrees",
+          "--no-first-run",
+          "--no-default-browser-check",
+          "--no-zygote",
+          "--disable-gpu",
           
           // Make it look more like a real browser
-          '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          '--window-size=1366,768',
-          '--disable-infobars',
-          '--start-maximized',
+          "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "--window-size=1366,768",
+          "--disable-infobars",
+          "--start-maximized",
           
-          // Additional privacy flags
-          '--incognito',
-          '--disable-logging',
-          '--disable-gpu-logging',
-          '--silent'
+          // Additional privacy flags (remove incognito as it conflicts with userDataDir)
+          "--disable-logging",
+          "--disable-gpu-logging",
+          "--silent"
         ],
         ignoreDefaultArgs: ['--enable-automation'],
         ignoreHTTPSErrors: true
@@ -634,6 +874,9 @@ class InstagramScraper {
       
       // Handle cookie banner if present
       await this.handleCookieConsent();
+      
+      // Check for modals/captchas before proceeding
+      await this.waitForModalHandling("login");
 
       // Interactive login mode - let user handle it manually
       console.log('\n🎯 INTERACTIVE LOGIN MODE');
@@ -651,7 +894,8 @@ class InstagramScraper {
       console.log('   ✅ Realistic browser headers');
       console.log('   ✅ WebDriver properties hidden');
       console.log('   ✅ Manual login (most human-like)');
-      console.log('   ✅ Session persistence (login once, stay logged in)\n');
+      console.log('   ✅ Session persistence (login once, stay logged in)');
+      console.log('   ✅ Automatic modal/captcha detection\n');
 
       // Add some random human-like movements before login
       await this.addHumanBehavior();
@@ -723,29 +967,70 @@ class InstagramScraper {
 
   async scrapeInstagramPage(instagramUrl) {
     try {
-      // Login first if credentials are provided and we're not logged in
-      if (this.credentials && !this.isLoggedIn) {
-        await this.login();
-      }
-
-      console.log(`📱 Navigating to ${instagramUrl}...`);
+      console.log(`📱 Navigating directly to ${instagramUrl}...`);
       
-      // Increased timeout for proxy connections and better error handling
+      // Navigate directly to the target page first
       try {
         await this.page.goto(instagramUrl, { 
-          waitUntil: 'networkidle0',
-          timeout: 90000 // Increased to 90 seconds for proxy
+          waitUntil: "networkidle0",
+          timeout: 90000
         });
-      } catch (timeoutError) {
-        console.log('⚠️ Navigation timeout, trying with domcontentloaded...');
-        await this.page.goto(instagramUrl, { 
-          waitUntil: 'domcontentloaded',
-          timeout: 60000 // 60 seconds fallback
-        });
+        
+        await this.wait(3000);
+        
+        // Check if we're already logged in using persistent browser data
+        const alreadyLoggedIn = await this.checkLoginStatus();
+        if (alreadyLoggedIn) {
+          console.log("✅ Already logged in via persistent browser data!");
+          this.isLoggedIn = true;
+        } else {
+          console.log("⚠️ Not logged in, will need to authenticate");
+          
+          // Check if we got redirected to login page
+          const currentUrl = this.page.url();
+          if (currentUrl.includes('/accounts/login/') && this.credentials) {
+            console.log("🔄 Redirected to login page, will authenticate first");
+            await this.login();
+            // Navigate back to target page after login
+            console.log(`📱 Returning to ${instagramUrl}...`);
+            await this.page.goto(instagramUrl, { 
+              waitUntil: 'networkidle2',
+              timeout: 30000 
+            });
+            await this.wait(3000);
+          }
+        }
+        
+      } catch (error) {
+        console.log("⚠️ Direct navigation failed, trying login first approach...");
+        
+        // Fallback: Login first if credentials are provided and we're not logged in
+        if (this.credentials && !this.isLoggedIn) {
+          await this.login();
+        }
+
+        console.log(`📱 Navigating to ${instagramUrl}...`);
+        
+        // Increased timeout for proxy connections and better error handling
+        try {
+          await this.page.goto(instagramUrl, { 
+            waitUntil: 'networkidle0',
+            timeout: 90000 // Increased to 90 seconds for proxy
+          });
+        } catch (timeoutError) {
+          console.log('⚠️ Navigation timeout, trying with domcontentloaded...');
+          await this.page.goto(instagramUrl, { 
+            waitUntil: 'domcontentloaded',
+            timeout: 60000 // 60 seconds fallback
+          });
+        }
       }
 
       // Wait for page to load (increased for proxy)
       await this.wait(8000);
+      
+      // Check for modals/captchas after page load
+      await this.waitForModalHandling("page_load");
 
       // Check current URL to see if we got redirected to login
       const currentUrl = this.page.url();
@@ -765,6 +1050,8 @@ class InstagramScraper {
             timeout: 30000 
           });
           await this.wait(3000);
+          // Check for modals after re-navigation
+          await this.waitForModalHandling("re_navigation");
         } else {
           throw new Error('Session expired and no login credentials provided');
         }
@@ -789,8 +1076,40 @@ class InstagramScraper {
       // Add human-like behavior before scrolling
       await this.addHumanBehavior();
 
-      // Scroll to load more posts
-      await this.autoScroll();
+      // Prevent accidental navigation by disabling certain click events during scrolling
+      await this.page.evaluate(() => {
+        // Temporarily disable navigation clicks during scrolling
+        const preventNavigation = (event) => {
+          // Don't prevent all clicks, just navigation ones
+          const target = event.target;
+          if (target && (target.tagName === 'A' || target.closest('a'))) {
+            const href = target.href || target.closest('a')?.href;
+            if (href && (href.includes('/p/') || href.includes('/reel/') || href.includes('/tv/'))) {
+              console.log('🚫 Preventing navigation click during scrolling:', href);
+              event.preventDefault();
+              event.stopPropagation();
+              return false;
+            }
+          }
+        };
+        
+        // Add the event listener
+        document.addEventListener('click', preventNavigation, true);
+        
+        // Store it so we can remove it later
+        window.__scrollingNavPrevention = preventNavigation;
+      });
+
+      // Load all posts from the page (scroll to bottom to get everything)
+      await this.loadAllPosts();
+
+      // Remove the navigation prevention
+      await this.page.evaluate(() => {
+        if (window.__scrollingNavPrevention) {
+          document.removeEventListener('click', window.__scrollingNavPrevention, true);
+          delete window.__scrollingNavPrevention;
+        }
+      });
 
       // Add more human behavior after scrolling
       await this.addHumanBehavior();
@@ -798,7 +1117,7 @@ class InstagramScraper {
       // Get all posts
       const posts = await this.extractPosts();
       
-      console.log(`✅ Found ${posts.length} posts`);
+      console.log(`✅ Found ${posts.length} total posts on the page`);
       
       // Download profile image if available
       let profileImageFile = null;
@@ -819,18 +1138,32 @@ class InstagramScraper {
     }
   }
 
-  async autoScroll() {
-    console.log('📜 Scrolling to load more posts...');
+  async loadAllPosts() {
+    console.log('📜 Loading all posts from the page...');
+    
+    // Store the target URL to ensure we don't navigate away
+    const targetUrl = this.page.url();
+    console.log(`🎯 Target URL: ${targetUrl}`);
     
     let previousPostCount = 0;
     let stableCount = 0;
-    const maxScrollAttempts = 15; // Increased from 10 to 15
+    let lastScrollHeight = 0;
+    const maxScrollAttempts = 20; // Increased to ensure we get everything
     
     for (let attempt = 0; attempt < maxScrollAttempts; attempt++) {
-      console.log(`📜 Scroll attempt ${attempt + 1}/${maxScrollAttempts}`);
+      // Check if we're still on the correct page
+      const currentUrl = this.page.url();
+      if (!currentUrl.includes(targetUrl.split('?')[0])) {
+        console.log(`🚨 Page navigation detected! Expected: ${targetUrl}, Current: ${currentUrl}`);
+        console.log(`� Navigating back to target page...`);
+        await this.page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+        await this.wait(3000);
+      }
       
-      // Get current post count
-      const currentPostCount = await this.page.evaluate(() => {
+      console.log(`�📜 Scroll attempt ${attempt + 1}/${maxScrollAttempts}`);
+      
+      // Get current post count and scroll height
+      const { currentPostCount, currentScrollHeight } = await this.page.evaluate(() => {
         const postSelectors = [
           "a[href*=\"/p/\"]",
           "a[href*=\"/reel/\"]",
@@ -845,59 +1178,100 @@ class InstagramScraper {
             totalPosts = elements.length;
           }
         }
-        return totalPosts;
+        
+        return {
+          currentPostCount: totalPosts,
+          currentScrollHeight: document.body.scrollHeight
+        };
       });
       
       console.log(`📊 Found ${currentPostCount} posts so far`);
       
-      // Check if we found new posts
-      if (currentPostCount === previousPostCount) {
-        stableCount++;
-        console.log(`⏸️ No new posts found (stable count: ${stableCount})`);
+      // Detect weird jumps that indicate page issues
+      const postDifference = currentPostCount - previousPostCount;
+      const heightDifference = currentScrollHeight - lastScrollHeight;
+      
+      if (attempt > 0 && (postDifference < -10 || heightDifference < -1000)) {
+        console.log(`🚨 Unusual content change detected! Posts: ${postDifference}, Height: ${heightDifference}px`);
+        console.log(`🔄 This suggests page navigation or dynamic content changes.`);
         
-        // If no new posts for 2 attempts (reduced from 3), we're probably done
-        if (stableCount >= 2) {
-          console.log('✅ No more posts to load, stopping scroll');
+        // Wait longer and check URL again
+        await this.wait(5000);
+        const urlCheck = this.page.url();
+        if (!urlCheck.includes(targetUrl.split('?')[0])) {
+          console.log(`🚨 Confirmed page navigation! Returning to target page...`);
+          await this.page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+          await this.wait(3000);
+          continue; // Restart this attempt
+        }
+      }
+      
+      // Check if we've reached the end - both post count and scroll height stable
+      const noNewPosts = currentPostCount === previousPostCount;
+      const noMoreHeight = currentScrollHeight === lastScrollHeight;
+      
+      if (noNewPosts && noMoreHeight) {
+        stableCount++;
+        console.log(`⏸️ No changes detected (posts: ${currentPostCount}, height: ${currentScrollHeight}) - stable count: ${stableCount}`);
+        
+        // If nothing changed for 3 attempts, we've reached the end
+        if (stableCount >= 3) {
+          console.log('✅ Reached end of page - all posts loaded');
           break;
         }
       } else {
-        stableCount = 0; // Reset stable count if we found new posts
-        console.log(`📈 Found ${currentPostCount - previousPostCount} new posts`);
+        stableCount = 0; // Reset stable count if something changed
+        if (!noNewPosts && postDifference > 0) {
+          console.log(`📈 Found ${postDifference} new posts`);
+        }
+        if (!noMoreHeight && heightDifference > 0) {
+          console.log(`📏 Page height increased: ${heightDifference}px`);
+        }
       }
       
       previousPostCount = currentPostCount;
+      lastScrollHeight = currentScrollHeight;
       
-      // Perform more aggressive scrolling
-      await this.page.evaluate(async () => {
-        // Scroll to bottom in multiple steps with faster intervals
-        const scrollSteps = 8; // Increased from 5
-        const scrollHeight = document.body.scrollHeight;
-        const stepSize = scrollHeight / scrollSteps;
-        
-        for (let i = 0; i < scrollSteps; i++) {
-          window.scrollTo(0, stepSize * (i + 1));
-          await new Promise(resolve => setTimeout(resolve, 300)); // Reduced from 500ms
-        }
-        
-        // Final scroll to absolute bottom
-        window.scrollTo(0, document.body.scrollHeight);
-        
-        // Scroll back up a bit and down again to trigger loading
-        window.scrollTo(0, document.body.scrollHeight - 500);
-        await new Promise(resolve => setTimeout(resolve, 200));
-        window.scrollTo(0, document.body.scrollHeight);
+      // Check if we're at the bottom of the page
+      const isAtBottom = await this.page.evaluate(() => {
+        return window.innerHeight + window.scrollY >= document.body.scrollHeight - 100;
       });
       
-      // Wait for new posts to load
-      console.log('⏳ Waiting for new posts to load...');
+      if (isAtBottom && stableCount >= 2) {
+        console.log('✅ Reached bottom of page and no new content loading');
+        break;
+      }
+      
+      // Perform more careful scrolling to avoid triggering navigation
+      await this.page.evaluate(async () => {
+        const currentScroll = window.scrollY;
+        const maxScroll = document.body.scrollHeight - window.innerHeight;
+        const scrollStep = Math.min(300, maxScroll - currentScroll); // Smaller scroll steps
+        
+        if (scrollStep > 0) {
+          // Scroll more gradually
+          window.scrollBy(0, scrollStep);
+          await new Promise(resolve => setTimeout(resolve, 500)); // Longer wait
+        }
+      });
+      
+      // Wait for new content to load - increased time
+      console.log('⏳ Waiting for content to load...');
       await this.wait(4000); // Increased wait time
       
-      // Add some human behavior during scrolling
-      await this.addHumanBehavior();
+      // Only check for modals occasionally during scrolling to avoid false positives
+      if (attempt % 5 === 0) {
+        await this.waitForModalHandling("scrolling");
+      }
+      
+      // Reduce human behavior during scrolling to avoid issues
+      if (attempt % 3 === 0) {
+        await this.addHumanBehavior();
+      }
     }
     
-    // Final check for posts
-    const finalPostCount = await this.page.evaluate(() => {
+    // Final verification
+    const finalStats = await this.page.evaluate(() => {
       const postSelectors = [
         "a[href*=\"/p/\"]",
         "a[href*=\"/reel/\"]",
@@ -912,10 +1286,15 @@ class InstagramScraper {
           totalPosts = elements.length;
         }
       }
-      return totalPosts;
+      
+      return {
+        totalPosts: totalPosts,
+        scrollHeight: document.body.scrollHeight,
+        isAtBottom: window.innerHeight + window.scrollY >= document.body.scrollHeight - 50
+      };
     });
     
-    console.log(`📊 Final post count after scrolling: ${finalPostCount}`);
+    console.log(`📊 Final stats: ${finalStats.totalPosts} posts, height: ${finalStats.scrollHeight}px, at bottom: ${finalStats.isAtBottom}`);
   }
 
   async extractPosts() {
@@ -925,40 +1304,27 @@ class InstagramScraper {
       const posts = [];
       const seenUrls = new Set(); // Track unique posts
       
-      // Comprehensive selectors for Instagram posts (updated for 2025)
+      // Enhanced selectors for Instagram posts with better targeting
       const postSelectors = [
-        // Standard post selectors
-        "a[href*=\"/p/\"]",
-        "a[href*=\"/reel/\"]",
+        // Main post containers - more specific targeting
+        "main article a[href*=\"/p/\"]",
+        "main article a[href*=\"/reel/\"]",
         
-        // Article-based selectors
-        "article a[href*=\"/p/\"]",
-        "article a[href*=\"/reel/\"]",
-        
-        // Role-based selectors
-        "[role=\"link\"][href*=\"/p/\"]",
-        "[role=\"link\"][href*=\"/reel/\"]",
-        
-        // More specific selectors
+        // Grid view posts
         "div[style*=\"padding-bottom\"] a[href*=\"/p/\"]",
         "div[style*=\"padding-bottom\"] a[href*=\"/reel/\"]",
         
-        // Class-based selectors (Instagram's class names change frequently)
-        "article[role=\"presentation\"] a",
-        "div[class*=\"v1Nh3\"] a",
-        "div._ac7v a",
+        // Role-based selectors for posts
+        "[role=\"link\"][href*=\"/p/\"]",
+        "[role=\"link\"][href*=\"/reel/\"]",
         
-        // Broad selectors as fallback
-        "div > a[href*=\"instagram.com/p/\"]",
-        "div > a[href*=\"instagram.com/reel/\"]",
-        
-        // Additional fallback selectors
+        // Additional fallbacks
         "a[href*=\"/tv/\"]", // IGTV posts
-        "*[href*=\"/p/\"]", // Any element with post href
-        "*[href*=\"/reel/\"]" // Any element with reel href
+        "article a[href*=\"/p/\"]",
+        "article a[href*=\"/reel/\"]"
       ];
       
-      console.log("🔍 Trying multiple selectors to find posts...");
+      console.log("🔍 Extracting posts with enhanced media detection...");
       
       // Try each selector and collect all unique posts
       for (const selector of postSelectors) {
@@ -969,10 +1335,10 @@ class InstagramScraper {
           elements.forEach((element, index) => {
             try {
               let postUrl = '';
-              let imageUrl = '';
+              let mediaData = { images: [], videos: [], type: 'unknown' };
               let description = '';
               
-              // Get post URL
+              // Get post URL and clean it
               if (element.tagName === 'A') {
                 postUrl = element.href;
               } else {
@@ -980,26 +1346,164 @@ class InstagramScraper {
                 postUrl = linkElement ? linkElement.href : '';
               }
               
+              // Clean the URL - remove hash fragments and query parameters
+              if (postUrl) {
+                // Remove everything after # (hash)
+                if (postUrl.includes('#')) {
+                  postUrl = postUrl.split('#')[0];
+                }
+                // Keep query parameters for now as they might be needed
+                // Instagram URLs like: https://www.instagram.com/p/ABC123/
+                
+                // Ensure it's a proper Instagram post URL
+                if (!postUrl.includes('instagram.com/p/') && 
+                    !postUrl.includes('instagram.com/reel/') && 
+                    !postUrl.includes('instagram.com/tv/')) {
+                  console.log(`⚠️ Skipping invalid URL: ${postUrl}`);
+                  return;
+                }
+              }
+              
               // Skip if we've already seen this URL
               if (!postUrl || seenUrls.has(postUrl)) {
                 return;
               }
               
-              // Get image URL - try multiple methods
-              let imgElement = element.querySelector('img');
-              if (!imgElement && element.tagName === 'A') {
-                // Look for images in parent or sibling elements
-                imgElement = element.parentElement?.querySelector('img') || 
-                           element.closest('article')?.querySelector('img') ||
-                           element.closest('div')?.querySelector('img');
+              // Determine post type from URL
+              if (postUrl.includes('/reel/') || postUrl.includes('/tv/')) {
+                mediaData.type = 'video';
+              } else if (postUrl.includes('/p/')) {
+                mediaData.type = 'mixed'; // Can be image or video, need to check content
               }
               
-              if (imgElement) {
-                imageUrl = imgElement.src || imgElement.dataset.src || imgElement.getAttribute('src');
-                description = imgElement.alt || imgElement.getAttribute('alt') || '';
+              // Enhanced media extraction - look for multiple media files
+              const mediaContainer = element.closest('article') || element.closest('div');
+              
+              if (mediaContainer) {
+                // Look for images with better resolution detection
+                const images = mediaContainer.querySelectorAll('img');
+                images.forEach(img => {
+                  if (img.src && img.src.startsWith('http')) {
+                    // Skip tiny profile images and icons
+                    if (img.width > 100 && img.height > 100) {
+                      // Try to get higher resolution version
+                      let imageUrl = img.src;
+                      
+                      // Instagram image URL patterns - try to get full size
+                      if (imageUrl.includes("scontent")) {
+                        // Remove size restrictions to get full resolution
+                        imageUrl = imageUrl.replace(/&[^&]*?(s\d+x\d+|c\d+\.\d+\.\d+\.\d+)[^&]*/, "");
+                        imageUrl = imageUrl.replace(/\?.*$/, ""); // Remove all parameters for full size
+                        
+                        // Try to replace with higher resolution parameters
+                        if (!imageUrl.includes("_n.")) {
+                          // Instagram uses different suffixes for different sizes
+                          // _n = normal, _s = small, no suffix = original
+                          imageUrl = imageUrl.replace(/_[a-z]\./, ".");
+                        }
+                      }
+                      
+                      // Add to media data with better metadata
+                      mediaData.images.push({
+                        url: imageUrl,
+                        originalUrl: img.src, // Keep original for fallback
+                        alt: img.alt || "",
+                        width: img.width || 0,
+                        height: img.height || 0
+                      });
+                      
+                      // Update description from alt text if available
+                      if (img.alt && img.alt.length > description.length) {
+                        description = img.alt;
+                      }
+                    }
+                  }
+                });
+                
+                // Look for videos
+                const videos = mediaContainer.querySelectorAll('video');
+                videos.forEach(video => {
+                  if (video.src && video.src.startsWith('http')) {
+                    mediaData.videos.push({
+                      url: video.src,
+                      poster: video.poster || '',
+                      width: video.videoWidth || video.width || 0,
+                      height: video.videoHeight || video.height || 0
+                    });
+                    mediaData.type = 'video';
+                  }
+                  
+                  // Also check for source elements within video
+                  const sources = video.querySelectorAll('source');
+                  sources.forEach(source => {
+                    if (source.src && source.src.startsWith('http')) {
+                      mediaData.videos.push({
+                        url: source.src,
+                        type: source.type || 'video/mp4',
+                        width: video.videoWidth || video.width || 0,
+                        height: video.videoHeight || video.height || 0
+                      });
+                      mediaData.type = 'video';
+                    }
+                  });
+                });
+                
+                // Look for Instagram's video/image containers with data attributes
+                const mediaElements = mediaContainer.querySelectorAll('[style*="background-image"], [data-src], [src]');
+                mediaElements.forEach(el => {
+                  // Background images (often used for video thumbnails)
+                  const bgStyle = el.style.backgroundImage;
+                  if (bgStyle && bgStyle.includes('url(')) {
+                    const bgUrl = bgStyle.match(/url\(['"]?([^'"]+)['"]?\)/);
+                    if (bgUrl && bgUrl[1] && bgUrl[1].includes('scontent')) {
+                      let imageUrl = bgUrl[1];
+                      // Clean URL for better resolution
+                      imageUrl = imageUrl.replace(/&[^&]*?(s\d+x\d+|c\d+\.\d+\.\d+\.\d+)[^&]*/, '');
+                      imageUrl = imageUrl.replace(/\?.*$/, '');
+                      
+                      mediaData.images.push({
+                        url: imageUrl,
+                        alt: el.getAttribute('aria-label') || '',
+                        width: 0,
+                        height: 0,
+                        isBackground: true
+                      });
+                    }
+                  }
+                  
+                  // Data-src attributes (lazy loading)
+                  const dataSrc = el.getAttribute('data-src');
+                  if (dataSrc && dataSrc.includes('scontent')) {
+                    let imageUrl = dataSrc;
+                    imageUrl = imageUrl.replace(/&[^&]*?(s\d+x\d+|c\d+\.\d+\.\d+\.\d+)[^&]*/, '');
+                    imageUrl = imageUrl.replace(/\?.*$/, '');
+                    
+                    mediaData.images.push({
+                      url: imageUrl,
+                      alt: el.getAttribute('alt') || '',
+                      width: 0,
+                      height: 0
+                    });
+                  }
+                });
               }
               
-              // Extract post ID from URL - handle multiple formats
+              // Remove duplicate media by URL
+              mediaData.images = mediaData.images.filter((img, index, arr) => 
+                arr.findIndex(i => i.url === img.url) === index
+              );
+              mediaData.videos = mediaData.videos.filter((vid, index, arr) => 
+                arr.findIndex(v => v.url === vid.url) === index
+              );
+              
+              // Determine final media type
+              if (mediaData.videos.length > 0) {
+                mediaData.type = 'video';
+              } else if (mediaData.images.length > 0) {
+                mediaData.type = 'image';
+              }
+              
+              // Extract post ID from URL
               let postId = '';
               const postIdMatches = [
                 postUrl.match(/\/p\/([^\/\?]+)/),
@@ -1018,17 +1522,20 @@ class InstagramScraper {
                 postId = `post-${Date.now()}-${index}`;
               }
               
-              // Only add if we have essential data
-              if (postUrl && imageUrl) {
+              // Only add if we have media content
+              if (mediaData.images.length > 0 || mediaData.videos.length > 0) {
                 seenUrls.add(postUrl);
                 posts.push({
                   id: postId,
                   url: postUrl,
-                  imageUrl: imageUrl,
+                  mediaData: mediaData,
                   description: description,
-                  title: `Instagram Post ${postId}`,
-                  date: new Date().toISOString().split('T')[0]
+                  title: `Instagram ${mediaData.type === 'video' ? 'Video' : 'Post'} ${postId}`,
+                  date: new Date().toISOString().split('T')[0],
+                  type: mediaData.type
                 });
+                
+                console.log(`📸 Found ${mediaData.type} post: ${postId} (${mediaData.images.length} images, ${mediaData.videos.length} videos)`);
               }
             } catch (error) {
               console.error('Error extracting individual post:', error);
@@ -1050,7 +1557,8 @@ class InstagramScraper {
         }
       }
       
-      console.log(`🎯 Found ${uniquePosts.length} unique posts out of ${posts.length} total matches`);
+      console.log(`🎯 Found ${uniquePosts.length} unique posts with media`);
+      console.log(`📊 Media breakdown: ${uniquePosts.filter(p => p.type === 'image').length} images, ${uniquePosts.filter(p => p.type === 'video').length} videos, ${uniquePosts.filter(p => p.type === 'mixed').length} mixed`);
       
       return uniquePosts;
     });
@@ -1174,20 +1682,423 @@ class InstagramScraper {
     });
   }
 
-  async downloadImage(imageUrl, filename) {
+  async downloadMedia(mediaUrl, filename, mediaType = 'image') {
     try {
-      console.log(`📥 Downloading image: ${filename}`);
+      console.log(`📥 Downloading ${mediaType}: ${filename}`);
       
-      const viewSource = await this.page.goto(imageUrl);
-      const imagePath = path.join(this.imagesDir, filename);
+      // Create a new page for downloading to avoid affecting the main page
+      const downloadPage = await this.browser.newPage();
       
-      fs.writeFileSync(imagePath, await viewSource.buffer());
+      try {
+        // Set proper headers to mimic a browser request
+        await downloadPage.setExtraHTTPHeaders({
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Upgrade-Insecure-Requests': '1',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        });
+        
+        // Try to get the media with proper referrer
+        const response = await downloadPage.goto(mediaUrl, { 
+          waitUntil: 'networkidle0',
+          timeout: 30000,
+          referer: 'https://www.instagram.com/'
+        });
+        
+        if (!response || !response.ok()) {
+          // If direct access fails, try alternative method
+          console.log(`⚠️ Direct download failed (${response?.status()}), trying alternative method...`);
+          
+          // Try to load the image in a more browser-like way
+          await downloadPage.evaluate((url) => {
+            return new Promise((resolve, reject) => {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = () => resolve();
+              img.onerror = () => reject(new Error('Image load failed'));
+              img.src = url;
+            });
+          }, mediaUrl);
+          
+          // Now try to get it again
+          const retryResponse = await downloadPage.goto(mediaUrl, { 
+            waitUntil: 'networkidle0',
+            timeout: 30000 
+          });
+          
+          if (!retryResponse || !retryResponse.ok()) {
+            throw new Error(`Failed to fetch media after retry: ${retryResponse?.status() || 'no response'}`);
+          }
+          
+          const buffer = await retryResponse.buffer();
+          const mediaPath = path.join(this.imagesDir, filename);
+          fs.writeFileSync(mediaPath, buffer);
+          
+        } else {
+          // Direct access worked
+          const buffer = await response.buffer();
+          const mediaPath = path.join(this.imagesDir, filename);
+          fs.writeFileSync(mediaPath, buffer);
+        }
+        
+        console.log(`✅ Downloaded ${mediaType}: ${filename} (${mediaType === 'image' ? 'image' : 'video'} file)`);
+        return filename;
+        
+      } finally {
+        // Always close the download page
+        await downloadPage.close();
+      }
       
-      return filename;
     } catch (error) {
-      console.error(`❌ Error downloading image ${filename}:`, error);
+      console.error(`❌ Error downloading ${mediaType} ${filename}:`, error.message);
+      
+      // Try one more approach - screenshot the image element from the main page
+      if (mediaType === 'image') {
+        try {
+          console.log(`🔄 Attempting screenshot method for ${filename}...`);
+          
+          // Find the image element on the main page
+          const imgElement = await this.page.$(`img[src="${mediaUrl}"]`);
+          if (imgElement) {
+            const screenshotBuffer = await imgElement.screenshot();
+            const mediaPath = path.join(this.imagesDir, filename);
+            fs.writeFileSync(mediaPath, screenshotBuffer);
+            console.log(`✅ Downloaded ${mediaType} via screenshot: ${filename}`);
+            return filename;
+          }
+        } catch (screenshotError) {
+          console.error(`❌ Screenshot method also failed:`, screenshotError.message);
+        }
+      }
+      
       return null;
     }
+  }
+
+  async downloadMediaFromPage(mediaUrl, filename, mediaType = "image") {
+    try {
+      console.log(`📸 Capturing ${mediaType} from page: ${filename}`);
+      
+      // Wait for page to be fully loaded
+      await this.wait(2000);
+      
+      // Find all image and video elements on the current page
+      const mediaElements = await this.page.$$("img, video");
+      let targetElement = null;
+      
+      // Look for the media element that matches our URL
+      for (const element of mediaElements) {
+        const src = await this.page.evaluate(el => el.src || el.currentSrc, element);
+        
+        // Check if this element's src matches our target URL
+        if (src && (src === mediaUrl || src.includes(mediaUrl.split("?")[0]) || mediaUrl.includes(src.split("?")[0]))) {
+          // Verify the element is visible
+          const isVisible = await this.page.evaluate(el => {
+            const rect = el.getBoundingClientRect();
+            const style = window.getComputedStyle(el);
+            return rect.width > 50 && rect.height > 50 &&
+                   style.display !== "none" &&
+                   style.visibility !== "hidden" &&
+                   style.opacity !== "0";
+          }, element);
+          
+          if (isVisible) {
+            targetElement = element;
+            console.log(`📍 Found matching visible ${mediaType} element`);
+            break;
+          }
+        }
+      }
+      
+      // If we didn't find a match by URL, try to find the largest visible image/video
+      if (!targetElement && mediaType === "image") {
+        console.log('🔍 No URL match found, looking for largest visible image...');
+        
+        const largestElement = await this.page.evaluate(() => {
+          const images = Array.from(document.querySelectorAll('img'));
+          let largest = null;
+          let maxArea = 0;
+          
+          for (const img of images) {
+            const rect = img.getBoundingClientRect();
+            const style = window.getComputedStyle(img);
+            const area = rect.width * rect.height;
+            
+            // Check if image is visible and reasonable size
+            if (rect.width > 200 && rect.height > 200 &&
+                style.display !== "none" &&
+                style.visibility !== "hidden" &&
+                style.opacity !== "0" &&
+                area > maxArea) {
+              maxArea = area;
+              largest = img;
+            }
+          }
+          
+          return largest;
+        });
+        
+        if (largestElement) {
+          targetElement = largestElement;
+          console.log('📍 Using largest visible image as fallback');
+        }
+      }
+      
+      if (targetElement) {
+        if (mediaType === "image") {
+          // Screenshot the image element
+          const screenshotBuffer = await targetElement.screenshot({
+            type: "jpeg",
+            quality: 90
+          });
+          
+          const mediaPath = path.join(this.imagesDir, filename);
+          fs.writeFileSync(mediaPath, screenshotBuffer);
+          console.log(`✅ Captured image from page: ${filename}`);
+          return filename;
+        } else if (mediaType === "video") {
+          // For videos, try to get the video URL and download it
+          const videoSrc = await this.page.evaluate(el => {
+            return el.src || el.currentSrc || 
+                   (el.querySelector("source") && el.querySelector("source").src);
+          }, targetElement);
+          
+          if (videoSrc) {
+            return await this.downloadMedia(videoSrc, filename, mediaType);
+          }
+        }
+      }
+      
+      console.log(`❌ Could not find visible ${mediaType} element on page`);
+      return null;
+      
+    } catch (error) {
+      console.error(`❌ Error capturing ${mediaType} from page:`, error.message);
+      return null;
+    }
+  }
+
+  async extractMediaFromPostPage() {
+    console.log("🔍 Extracting media from post page...");
+    
+    return await this.page.evaluate(() => {
+      const mediaData = { images: [], videos: [] };
+      
+      // Look for images - Instagram post images
+      const images = document.querySelectorAll('img');
+      
+      images.forEach(img => {
+        if (img.src && img.src.startsWith('http') && !img.src.includes('profile') && !img.src.includes('avatar')) {
+          // Check if it's a content image (not a UI element)
+          const rect = img.getBoundingClientRect();
+          if (rect.width > 100 && rect.height > 100) {
+            // Get higher resolution version if available
+            let imageUrl = img.src;
+            
+            // Instagram often has different resolutions in srcset
+            if (img.srcset) {
+              const srcsetEntries = img.srcset.split(',');
+              // Get the highest resolution available
+              const highestRes = srcsetEntries[srcsetEntries.length - 1];
+              if (highestRes) {
+                imageUrl = highestRes.trim().split(' ')[0];
+              }
+            }
+            
+            mediaData.images.push({
+              url: imageUrl,
+              alt: img.alt || '',
+              width: img.naturalWidth || rect.width,
+              height: img.naturalHeight || rect.height
+            });
+          }
+        }
+      });
+      
+      // Look for videos
+      const videos = document.querySelectorAll('video');
+      
+      videos.forEach(video => {
+        if (video.src || video.currentSrc) {
+          const rect = video.getBoundingClientRect();
+          if (rect.width > 100 && rect.height > 100) {
+            mediaData.videos.push({
+              url: video.src || video.currentSrc,
+              type: video.type || 'video/mp4',
+              width: video.videoWidth || rect.width,
+              height: video.videoHeight || rect.height,
+              poster: video.poster || ''
+            });
+          }
+        }
+      });
+      
+      // Remove duplicates
+      mediaData.images = mediaData.images.filter((img, index, arr) => 
+        arr.findIndex(i => i.url === img.url) === index
+      );
+      mediaData.videos = mediaData.videos.filter((vid, index, arr) => 
+        arr.findIndex(v => v.url === vid.url) === index
+      );
+      
+      console.log(`📊 Extracted ${mediaData.images.length} images and ${mediaData.videos.length} videos from post page`);
+      
+      return mediaData;
+    });
+  }
+
+  async downloadPostMedia(post) {
+    const downloadedFiles = {
+      images: [],
+      videos: [],
+      primaryMedia: null,
+      mediaType: post.type
+    };
+
+    try {
+      console.log(`📱 Processing ${post.type} post: ${post.id}`);
+      
+      // Navigate to the actual post page to get better media access
+      let postUrl = post.url;
+      
+      // Clean the URL and ensure it's a direct post URL
+      if (postUrl.includes('#')) {
+        postUrl = postUrl.split('#')[0];
+      }
+      if (postUrl.includes('?')) {
+        postUrl = postUrl.split('?')[0];
+      }
+      
+      // Ensure it's a proper post URL format
+      if (!postUrl.includes('/p/') && !postUrl.includes('/reel/')) {
+        console.log(`⚠️ Invalid post URL format: ${postUrl}`);
+        return downloadedFiles;
+      }
+      
+      console.log(`🔗 Navigating to post page: ${postUrl}`);
+      
+      try {
+        // Navigate to the actual post page
+        await this.page.goto(postUrl, { 
+          waitUntil: 'networkidle0',
+          timeout: 30000 
+        });
+        await this.wait(3000);
+        
+        // Extract media from the actual post page
+        const pageMediaData = await this.extractMediaFromPostPage();
+        
+        if (pageMediaData.images.length > 0) {
+          post.mediaData.images = pageMediaData.images;
+          console.log(`📸 Found ${pageMediaData.images.length} images on post page`);
+        }
+        
+        if (pageMediaData.videos.length > 0) {
+          post.mediaData.videos = pageMediaData.videos;
+          console.log(`🎥 Found ${pageMediaData.videos.length} videos on post page`);
+        }
+        
+      } catch (navError) {
+        console.log(`⚠️ Could not navigate to post page: ${navError.message}`);
+        console.log('📋 Will try with original media data');
+      }
+      
+      // Download images
+      if (post.mediaData.images && post.mediaData.images.length > 0) {
+        console.log(`📸 Found ${post.mediaData.images.length} images`);
+        
+        for (let i = 0; i < post.mediaData.images.length; i++) {
+          const img = post.mediaData.images[i];
+          const extension = this.getImageExtension(img.url);
+          const filename = `instagram-${post.id}-img-${i + 1}${extension}`;
+          
+          // Try the enhanced download method first, then fallback to page capture
+          let downloaded = await this.downloadMedia(img.url, filename, "image");
+          
+          // If download failed, try capturing from the current page
+          if (!downloaded) {
+            console.log(`🔄 Trying page capture method for ${filename}...`);
+            downloaded = await this.downloadMediaFromPage(img.url, filename, "image");
+          }
+          
+          if (downloaded) {
+            downloadedFiles.images.push({
+              filename: downloaded,
+              alt: img.alt || "",
+              width: img.width,
+              height: img.height,
+              url: `/img/${downloaded}`
+            });
+            
+            // Set first image as primary if no primary set
+            if (!downloadedFiles.primaryMedia) {
+              downloadedFiles.primaryMedia = downloaded;
+            }
+          }
+          
+          // Add delay between downloads
+          await this.wait(1000);
+        }
+      }
+      
+      // Download videos
+      if (post.mediaData.videos && post.mediaData.videos.length > 0) {
+        console.log(`🎥 Found ${post.mediaData.videos.length} videos`);
+        
+        for (let i = 0; i < post.mediaData.videos.length; i++) {
+          const video = post.mediaData.videos[i];
+          const extension = this.getVideoExtension(video.url);
+          const filename = `instagram-${post.id}-video-${i + 1}${extension}`;
+          
+          const downloaded = await this.downloadMedia(video.url, filename, 'video');
+          if (downloaded) {
+            downloadedFiles.videos.push({
+              filename: downloaded,
+              type: video.type || 'video/mp4',
+              width: video.width,
+              height: video.height,
+              poster: video.poster || '',
+              url: `/img/${downloaded}`
+            });
+            
+            // Set first video as primary if no primary set (videos take priority)
+            if (!downloadedFiles.primaryMedia || post.type === 'video') {
+              downloadedFiles.primaryMedia = downloaded;
+              downloadedFiles.mediaType = 'video';
+            }
+          }
+          
+          // Add delay between downloads
+          await this.wait(1500);
+        }
+      }
+      
+      return downloadedFiles;
+      
+    } catch (error) {
+      console.error(`❌ Error downloading media for post ${post.id}:`, error.message);
+      return downloadedFiles;
+    }
+  }
+
+  getVideoExtension(videoUrl) {
+    // Extract extension from URL
+    const urlParts = videoUrl.split('?')[0]; // Remove query parameters
+    const extension = urlParts.split('.').pop().toLowerCase();
+    
+    // Default to common video formats
+    if (['mp4', 'mov', 'avi', 'webm', 'm4v'].includes(extension)) {
+      return `.${extension}`;
+    }
+    
+    // Default to .mp4 if unclear
+    return '.mp4';
   }
 
   getImageExtension(imageUrl) {
@@ -1211,16 +2122,40 @@ class InstagramScraper {
     }
 
     try {
-      console.log("📥 Downloading profile image...");
+      console.log("📥 Downloading profile image for site logo...");
       
       // Generate filename for profile image
       const username = profileInfo.username || "profile";
       const extension = this.getImageExtension(profileInfo.profileImageUrl);
       const fileName = `${username}-profile${extension}`;
       
-      const success = await this.downloadImage(profileInfo.profileImageUrl, fileName);
+      // Download using the new media download system
+      const success = await this.downloadMedia(profileInfo.profileImageUrl, fileName, "image");
       
       if (success) {
+        // Also copy as site logo
+        const logoPath = path.join(__dirname, '../site/static/img/logo.svg');
+        const profilePath = path.join(this.imagesDir, fileName);
+        const logoBackupPath = path.join(__dirname, '../site/static/img/logo-backup.svg');
+        
+        try {
+          // Backup existing logo if it exists
+          if (fs.existsSync(logoPath)) {
+            if (!fs.existsSync(logoBackupPath)) {
+              fs.copyFileSync(logoPath, logoBackupPath);
+              console.log("📄 Backed up existing logo");
+            }
+          }
+          
+          // Copy profile image as new logo (keeping original extension)
+          const newLogoPath = path.join(__dirname, '../site/static/img', `logo${extension}`);
+          fs.copyFileSync(profilePath, newLogoPath);
+          console.log(`✅ Profile image set as site logo: logo${extension}`);
+          
+        } catch (logoError) {
+          console.log("⚠️ Could not replace logo, but profile image downloaded successfully");
+        }
+        
         console.log(`✅ Profile image downloaded: ${fileName}`);
         return fileName;
       } else {
@@ -1233,24 +2168,76 @@ class InstagramScraper {
     }
   }
 
-  async createProductMarkdown(post, imagePath) {
+  async cleanExistingInstagramProducts() {
+    console.log("🧹 Cleaning existing Instagram products...");
+    
+    try {
+      const productsDirs = fs.readdirSync(this.outputDir);
+      let removedCount = 0;
+      
+      for (const dir of productsDirs) {
+        const fullPath = path.join(this.outputDir, dir);
+        
+        if (fs.statSync(fullPath).isDirectory() && dir.startsWith('instagram-post-')) {
+          console.log(`🗑️ Removing existing Instagram product: ${dir}`);
+          
+          // Remove the directory and all its contents
+          fs.rmSync(fullPath, { recursive: true, force: true });
+          removedCount++;
+        }
+      }
+      
+      console.log(`✅ Removed ${removedCount} existing Instagram products`);
+      return removedCount;
+      
+    } catch (error) {
+      console.error("❌ Error cleaning existing products:", error.message);
+      return 0;
+    }
+  }
+
+  async createProductMarkdown(post, mediaFiles, profileUsername) {
     const slug = this.createSlug(post.title);
     const productDir = path.join(this.outputDir, slug);
     
     this.ensureDirectoryExists(productDir);
     
+    // Determine primary media and build gallery
+    const primaryMedia = mediaFiles.primaryMedia;
+    const primaryMediaType = mediaFiles.mediaType;
+    
+    // Build gallery arrays for images and videos
+    const imageGallery = mediaFiles.images.length > 1 ? 
+      mediaFiles.images.slice(1).map(img => img.url) : [];
+    const videoGallery = mediaFiles.videos.map(vid => vid.url);
+    
+    // Combine all media for gallery (excluding primary)
+    const allGallery = [...imageGallery, ...videoGallery];
+    
+    // Create media metadata for CMS
+    const mediaMetadata = {
+      images: mediaFiles.images,
+      videos: mediaFiles.videos,
+      primaryType: primaryMediaType
+    };
+    
     const markdownContent = `---
 title: "${post.title}"
 date: ${post.date}
 description: "${post.description || 'Beautiful jewelry piece from our Instagram collection'}"
-image: "/img/products/${imagePath}"
-pricing:
-  - text: "Contact for pricing"
-    price: ""
+image: "/img/${primaryMedia}"
+primary_media_type: "${primaryMediaType}"
+${allGallery.length > 0 ? `gallery:\n${allGallery.map(url => `  - "${url}"`).join('\n')}\n` : ''}${mediaFiles.images.length > 0 ? `images:\n${mediaFiles.images.map(img => `  - url: "${img.url}"\n    alt: "${img.alt}"\n    width: ${img.width}\n    height: ${img.height}`).join('\n')}\n` : ''}${mediaFiles.videos.length > 0 ? `videos:\n${mediaFiles.videos.map(vid => `  - url: "${vid.url}"\n    type: "${vid.type}"\n    width: ${vid.width}\n    height: ${vid.height}${vid.poster ? `\n    poster: "${vid.poster}"` : ''}`).join('\n')}\n` : ''}price: 0
+category: "Instagram Collection"
+in_stock: true
+featured: false
 weight: 100
 draft: false
 instagram_post: "${post.url}"
 instagram_id: "${post.id}"
+instagram_account: "${profileUsername || 'unknown'}"
+post_type: "${post.type}"
+media_count: ${mediaFiles.images.length + mediaFiles.videos.length}
 ---
 
 ${post.description || 'This beautiful jewelry piece is part of our exclusive collection. Contact us for more details and pricing.'}
@@ -1259,15 +2246,34 @@ ${post.description || 'This beautiful jewelry piece is part of our exclusive col
 
 - **Source**: Instagram Collection
 - **Post ID**: ${post.id}
+- **Account**: ${profileUsername || 'N/A'}
 - **Date Added**: ${post.date}
+- **Media Type**: ${primaryMediaType === 'video' ? 'Video Content' : 'Image Content'}
+- **Total Media Files**: ${mediaFiles.images.length + mediaFiles.videos.length}
+${mediaFiles.images.length > 0 ? `- **Images**: ${mediaFiles.images.length} files\n` : ''}${mediaFiles.videos.length > 0 ? `- **Videos**: ${mediaFiles.videos.length} files\n` : ''}${allGallery.length > 0 ? `- **Gallery Items**: ${allGallery.length} additional media files\n` : ''}
 
-Contact us to learn more about this piece or to place an order.
+## Media Gallery
+
+${mediaFiles.images.length > 0 ? `### Images (${mediaFiles.images.length})
+${mediaFiles.images.map((img, index) => `${index + 1}. ![${img.alt}](${img.url})${img.alt ? ` - ${img.alt}` : ''}`).join('\n')}
+
+` : ''}${mediaFiles.videos.length > 0 ? `### Videos (${mediaFiles.videos.length})
+${mediaFiles.videos.map((vid, index) => `${index + 1}. [Video ${index + 1}](${vid.url}) (${vid.type})${vid.poster ? `\n   - Thumbnail: ![Video Thumbnail](${vid.poster})` : ''}`).join('\n')}
+
+` : ''}Contact us to learn more about this piece or to place an order.
+
+---
+*This product was automatically imported from Instagram and may need pricing and description updates.*
 `;
 
     const markdownPath = path.join(productDir, 'index.md');
     fs.writeFileSync(markdownPath, markdownContent);
     
-    console.log(`✅ Created product: ${slug}`);
+    // Also save media metadata as JSON for advanced CMS features
+    const metadataPath = path.join(productDir, 'media.json');
+    fs.writeFileSync(metadataPath, JSON.stringify(mediaMetadata, null, 2));
+    
+    console.log(`✅ Created CMS product with ${mediaFiles.images.length + mediaFiles.videos.length} media files: ${slug}`);
     return slug;
   }
 
@@ -1318,53 +2324,142 @@ Contact us to learn more about this piece or to place an order.
     }
   }
 
-  async processPostsAsProducts(posts) {
-    console.log(`🏭 Processing ${posts.length} posts as products...`);
+  async getExistingProductIds() {
+    console.log("🔍 Checking for existing Instagram products...");
     
+    try {
+      const existingIds = new Set();
+      
+      if (!fs.existsSync(this.outputDir)) {
+        console.log("📁 Products directory doesn't exist yet");
+        return existingIds;
+      }
+      
+      const productDirs = fs.readdirSync(this.outputDir);
+      
+      for (const dir of productDirs) {
+        const fullPath = path.join(this.outputDir, dir);
+        
+        if (fs.statSync(fullPath).isDirectory()) {
+          const indexPath = path.join(fullPath, 'index.md');
+          
+          if (fs.existsSync(indexPath)) {
+            try {
+              const content = fs.readFileSync(indexPath, 'utf8');
+              
+              // Extract Instagram ID from frontmatter
+              const instagramIdMatch = content.match(/instagram_id:\s*"([^"]+)"/);
+              if (instagramIdMatch) {
+                existingIds.add(instagramIdMatch[1]);
+              }
+              
+              // Also check for old-style post IDs in directory names
+              if (dir.startsWith('instagram-post-')) {
+                const oldStyleId = dir.replace('instagram-post-', '');
+                existingIds.add(oldStyleId);
+              }
+            } catch (error) {
+              console.log(`⚠️ Could not read ${indexPath}:`, error.message);
+            }
+          }
+        }
+      }
+      
+      console.log(`📊 Found ${existingIds.size} existing Instagram products`);
+      return existingIds;
+      
+    } catch (error) {
+      console.error("❌ Error checking existing products:", error.message);
+      return new Set();
+    }
+  }
+
+  async syncPostsWithProducts(posts, profileUsername) {
+    console.log(`🔄 Syncing ${posts.length} posts with existing products...`);
+    
+    // Get existing product IDs
+    const existingIds = await this.getExistingProductIds();
+    
+    // Filter out posts that already have products
+    const newPosts = posts.filter(post => !existingIds.has(post.id));
+    const skippedPosts = posts.filter(post => existingIds.has(post.id));
+    
+    console.log(`📊 Sync Analysis:`);
+    console.log(`   Total posts found: ${posts.length}`);
+    console.log(`   Already have products: ${skippedPosts.length}`);
+    console.log(`   New posts to process: ${newPosts.length}`);
+    
+    if (skippedPosts.length > 0) {
+      console.log(`⏭️ Skipping existing products for posts: ${skippedPosts.map(p => p.id).join(', ')}`);
+    }
+    
+    if (newPosts.length === 0) {
+      console.log(`✅ All posts are already synced as products! No new work needed.`);
+      return {
+        total: posts.length,
+        existing: skippedPosts.length,
+        processed: 0,
+        results: []
+      };
+    }
+    
+    console.log(`🚀 Processing ${newPosts.length} new posts...`);
+    
+    // Process only the new posts
     const results = [];
     
-    for (let i = 0; i < posts.length; i++) {
-      const post = posts[i];
-      console.log(`Processing post ${i + 1}/${posts.length}: ${post.id}`);
+    for (let i = 0; i < newPosts.length; i++) {
+      const post = newPosts[i];
+      console.log(`Processing new post ${i + 1}/${newPosts.length}: ${post.id} (${post.type})`);
       
       try {
-        // Download image
-        const imageExtension = post.imageUrl.includes('.jpg') ? '.jpg' : '.png';
-        const imageName = `${post.id}${imageExtension}`;
-        const downloadedImage = await this.downloadImage(post.imageUrl, imageName);
+        // Download all media files for this post
+        const mediaFiles = await this.downloadPostMedia(post);
         
-        if (downloadedImage) {
-          // Create product markdown
-          const productSlug = await this.createProductMarkdown(post, downloadedImage);
+        if (mediaFiles.primaryMedia) {
+          // Create CMS-compatible product markdown with media support
+          const productSlug = await this.createProductMarkdown(post, mediaFiles, profileUsername);
           
           results.push({
             success: true,
             postId: post.id,
             productSlug: productSlug,
-            imagePath: downloadedImage
+            mediaFiles: mediaFiles,
+            mediaCount: mediaFiles.images.length + mediaFiles.videos.length,
+            primaryMediaType: mediaFiles.mediaType,
+            isNew: true
           });
+          
+          console.log(`✅ Created product with ${mediaFiles.images.length} images and ${mediaFiles.videos.length} videos`);
         } else {
           results.push({
             success: false,
             postId: post.id,
-            error: 'Failed to download image'
+            error: "No media files could be downloaded",
+            isNew: true
           });
         }
         
-        // Add delay between requests
-        await this.wait(1000);
+        // Add delay between requests to be respectful
+        await this.wait(2000); // Increased delay for media downloads
         
       } catch (error) {
         console.error(`❌ Error processing post ${post.id}:`, error);
         results.push({
           success: false,
           postId: post.id,
-          error: error.message
+          error: error.message,
+          isNew: true
         });
       }
     }
     
-    return results;
+    return {
+      total: posts.length,
+      existing: skippedPosts.length,
+      processed: newPosts.length,
+      results: results
+    };
   }
 
   async close() {
@@ -1406,61 +2501,79 @@ Contact us to learn more about this piece or to place an order.
     console.log('✅ Session cleared! You will need to login again next time.');
   }
 
-  // Main method to scrape and convert Instagram posts to products
+  // Main method to scrape and sync Instagram posts with CMS products
   async scrapeAndCreateProducts(instagramUrl, options = {}) {
     const {
-      maxPosts = 20,
-      skipExisting = true
+      cleanExisting = false // Changed default to false since we're syncing now
     } = options;
 
     try {
       await this.init();
       
-      // Scrape Instagram page
+      // Only clean existing Instagram products if explicitly requested
+      if (cleanExisting) {
+        console.log("🧹 Cleaning existing products as requested...");
+        await this.cleanExistingInstagramProducts();
+      }
+      
+      // Scrape Instagram page to get all posts
       const scrapedData = await this.scrapeInstagramPage(instagramUrl);
       const posts = scrapedData.posts;
       const profile = scrapedData.profile;
       
-      // Save profile information
+      // Save profile information and handle logo replacement
       if (profile) {
         await this.saveProfileInfo(profile);
       }
       
-      // Limit posts if specified
-      const postsToProcess = posts.slice(0, maxPosts);
-      
-      // Process posts as products
-      const results = await this.processPostsAsProducts(postsToProcess);
+      // Sync posts with existing products (only create new ones)
+      const syncResults = await this.syncPostsWithProducts(posts, profile?.username);
       
       // Generate summary
-      const successful = results.filter(r => r.success);
-      const failed = results.filter(r => !r.success);
+      const successful = syncResults.results.filter(r => r.success);
+      const failed = syncResults.results.filter(r => !r.success);
       
-      console.log('\n📊 SUMMARY:');
-      console.log(`✅ Successfully created: ${successful.length} products`);
-      console.log(`❌ Failed: ${failed.length} posts`);
+      console.log("\n📊 SYNC SUMMARY:");
+      console.log(`📄 Total posts on page: ${syncResults.total}`);
+      console.log(`✅ Already synced as products: ${syncResults.existing}`);
+      console.log(`🆕 New products created: ${successful.length}`);
+      console.log(`❌ Failed to create: ${failed.length}`);
+      console.log(`📁 Images stored in: /img/ (visible in CMS media library)`);
       
       if (profile) {
-        console.log(`👤 Profile: ${profile.username || 'Unknown'}`);
-        console.log(`🖼️ Profile image: ${profile.profileImageFile ? 'Downloaded' : 'Not found'}`);
+        console.log(`👤 Profile: ${profile.username || "Unknown"}`);
+        console.log(`🖼️ Profile image: ${profile.profileImageFile ? "Downloaded and set as logo" : "Not found"}`);
+      }
+      
+      if (syncResults.existing > 0) {
+        console.log(`\n⏭️ Skipped ${syncResults.existing} posts that already have products`);
       }
       
       if (failed.length > 0) {
-        console.log('\n❌ Failed posts:');
+        console.log("\n❌ Failed posts:");
         failed.forEach(f => {
           console.log(`- ${f.postId}: ${f.error}`);
         });
       }
       
+      console.log("\n🎯 Next Steps:");
+      console.log("1. All Instagram posts are now synced as CMS products");
+      console.log("2. Only new posts were processed to avoid duplicates");
+      console.log("3. Run this script again to sync any newly posted content");
+      console.log("4. Edit product details through the CMS admin panel");
+      console.log("5. Images are visible in CMS media library with 'instagram-' prefix");
+      
       return {
-        total: results.length,
-        successful: successful.length,
+        total: syncResults.total,
+        existing: syncResults.existing,
+        newProducts: successful.length,
         failed: failed.length,
-        results: results
+        results: syncResults.results,
+        profile: profile
       };
       
     } catch (error) {
-      console.error('❌ Fatal error:', error);
+      console.error("❌ Fatal error:", error);
       throw error;
     } finally {
       await this.close();
@@ -1469,7 +2582,7 @@ Contact us to learn more about this piece or to place an order.
 }
 
 // Export for use as module
-module.exports = InstagramScraper;
+module.exports = {InstagramScraper};
 
 // CLI usage
 if (require.main === module) {
@@ -1477,20 +2590,37 @@ if (require.main === module) {
   
   if (args.length === 0) {
     console.log(`
-📱 Instagram to Products Scraper
+📱 Instagram to CMS Products Sync Tool with Smart Modal Handling
 
 Usage: node instagram-scraper.js <instagram-url> [options]
 
 Examples:
   node instagram-scraper.js "https://www.instagram.com/yourbrand/"
-  node instagram-scraper.js "https://www.instagram.com/yourbrand/" --max-posts=10
+  node instagram-scraper.js "https://www.instagram.com/yourbrand/" --clean-existing
   node instagram-scraper.js "https://www.instagram.com/privatepage/" --username=myuser --password=mypass
 
 Options:
-  --max-posts=N    Maximum number of posts to process (default: 20)
-  --skip-existing  Skip existing products (default: true)
-  --username=USER  Instagram username for private pages
-  --password=PASS  Instagram password for private pages
+  --clean-existing     Remove all existing Instagram products before syncing
+  --username=USER      Instagram username for private pages
+  --password=PASS      Instagram password for private pages
+
+🔄 SYNC BEHAVIOR:
+  • Loads ALL posts from the Instagram page (scrolls to bottom)
+  • Only creates products for NEW posts (avoids duplicates)
+  • Skips posts that already have products
+  • Perfect for keeping your CMS in sync with Instagram
+
+Features:
+  ✅ Downloads profile picture as site logo
+  ✅ Creates CMS-compatible product entries for ALL page posts
+  ✅ Smart sync - only processes new posts
+  ✅ Organizes images in /img/ folder (CMS media library)
+  ✅ Supports private Instagram accounts with login
+  ✅ Compatible with Decap CMS admin interface
+  ✅ 🆕 Automatic modal/captcha detection and pause
+  ✅ 🆕 Handles verification codes and security challenges
+  ✅ 🆕 Smart wait for manual intervention when needed
+  ✅ 🆕 Complete page sync (all posts → all products)
     `);
     process.exit(1);
   }
@@ -1500,18 +2630,15 @@ Options:
   const credentials = {};
   
   // Parse options
-  args.slice(1).forEach(arg => {
-    if (arg.startsWith('--max-posts=')) {
-      options.maxPosts = parseInt(arg.split('=')[1]);
+  args.slice(1).forEach((arg) => {
+    if (arg === "--clean-existing") {
+      options.cleanExisting = true;
     }
-    if (arg === '--no-skip-existing') {
-      options.skipExisting = false;
+    if (arg.startsWith("--username=")) {
+      credentials.username = arg.split("=")[1];
     }
-    if (arg.startsWith('--username=')) {
-      credentials.username = arg.split('=')[1];
-    }
-    if (arg.startsWith('--password=')) {
-      credentials.password = arg.split('=')[1];
+    if (arg.startsWith("--password=")) {
+      credentials.password = arg.split("=")[1];
     }
   });
 
@@ -1522,11 +2649,13 @@ Options:
   
   scraper.scrapeAndCreateProducts(instagramUrl, options)
     .then(results => {
-      console.log('\n🎉 Scraping completed successfully!');
+      console.log("\n🎉 Scraping completed successfully!");
+      console.log(`📊 Total: ${results.total}, Success: ${results.successful}, Failed: ${results.failed}`);
+      console.log("🔗 Access your CMS admin panel to manage the new products");
       process.exit(0);
     })
     .catch(error => {
-      console.error('\n💥 Scraping failed:', error);
+      console.error("\n💥 Scraping failed:", error);
       process.exit(1);
     });
 }

@@ -1,195 +1,177 @@
-# Instagram Scraper for Products
+# Instagram CMS Integration Scripts
 
-This script scrapes Instagram posts and converts them into Hugo products for your CMS.
+This folder contains scripts for integrating Instagram content with your Decap CMS.
 
-## Installation
+## Quick Start
 
-The required dependencies should already be installed, but you need to install Chrome for Puppeteer:
-
+### 1. Interactive Mode (asks for URL)
 ```bash
-# Install dependencies (if not already done)
-yarn add puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
-
-# Install Chrome for Puppeteer (REQUIRED)
-npx puppeteer browsers install chrome
-
-# Test the installation
-yarn scrape:test
+npm run scrape:interactive
 ```
 
-**Note**: The Chrome installation is required and will download ~170MB.
-
-## Usage
-
-### Command Line Usage
-
+### 2. Direct URL Mode (no prompts) ✨ NEW
 ```bash
-# Basic usage - scrape up to 20 posts from public page
-node scripts/instagram-scraper.js "https://www.instagram.com/yourbrand/"
-
-# Limit number of posts
-node scripts/instagram-scraper.js "https://www.instagram.com/yourbrand/" --max-posts=10
-
-# Scrape private page with login credentials
-node scripts/instagram-scraper.js "https://www.instagram.com/privatepage/" --username=myuser --password=mypass
-
-# Private page with limited posts
-node scripts/instagram-scraper.js "https://www.instagram.com/privatepage/" --username=myuser --password=mypass --max-posts=5
-
-# Don't skip existing products
-node scripts/instagram-scraper.js "https://www.instagram.com/yourbrand/" --no-skip-existing
+npm run scrape:url https://www.instagram.com/yourbrand/
 ```
 
-### Programmatic Usage
-
-```javascript
-const InstagramScraper = require('./scripts/instagram-scraper');
-
-// For public pages
-const scraper = new InstagramScraper();
-
-// For private pages with credentials
-const scraper = new InstagramScraper({
-  username: 'your_username',
-  password: 'your_password'
-});
-
-scraper.scrapeAndCreateProducts('https://www.instagram.com/yourbrand/', {
-  maxPosts: 15,
-  skipExisting: true
-}).then(results => {
-  console.log('Results:', results);
-}).catch(error => {
-  console.error('Error:', error);
-});
+### 3. Clear Saved Session
+```bash
+npm run scrape:clear-session
 ```
+
+## What's Fixed ✨
+
+### ✅ Direct Navigation
+- No longer goes to instagram.com first
+- Goes directly to your target page 
+- Faster and more efficient
+
+### ✅ Command Line URL Support
+- Can pass URL as argument to skip prompts
+- Perfect for automation and scripts
+
+### ✅ Enhanced Media Download
+- Multiple fallback methods for 403 errors
+- Proper browser headers and referrer
+- Screenshot method for protected images
+- Better handling of Instagram's protection
+
+### ✅ Persistent Browser Data
+- Uses `d:\puppeteer-data` for session storage
+- Login once, stay logged in
+- Works like a normal browser
+
+## Main Scripts
+
+### 🎯 Interactive Instagram Sync
+```bash
+yarn scrape:interactive
+```
+**The main script you need!** This comprehensive tool:
+- Syncs ALL posts from an Instagram page to your CMS
+- Only creates products for NEW posts (prevents duplicates)
+- Handles both public and private accounts (with manual login)
+- Downloads profile image and sets as site logo
+- Saves all images to CMS media library (`/img/` folder)
+- Creates CMS-compatible markdown files for each post
+- Handles captchas, modals, and login challenges
+- Persistent login sessions (login once, stay logged in for 48 hours)
+- Complete modal/captcha detection and handling
+
+### 🗑️ Clear Login Session
+```bash
+yarn scrape:clear-session
+```
+Clears saved Instagram login session. Use this if:
+- You want to login with a different account
+- Session seems corrupted
+- You're switching between accounts
+
+### 🖼️ Replace Site Images
+```bash
+yarn replace:jewelry-images
+```
+Replaces default coffee-themed images with jewelry-themed ones and updates the site logo.
 
 ## Features
 
-- **Stealth Mode**: Uses puppeteer-extra-plugin-stealth to avoid detection
-- **Private Page Support**: Can login and scrape private Instagram accounts
-- **Auto-scroll**: Automatically scrolls to load more posts
-- **Image Download**: Downloads images to `site/static/img/products/`
-- **Hugo Integration**: Creates Hugo-compatible markdown files in `site/content/products/`
-- **Error Handling**: Robust error handling with detailed logging
-- **Login Management**: Handles Instagram login dialogs and 2FA prompts
-- **Customizable**: Configurable options for max posts, credentials, etc.
+### 🔄 Complete Page Sync
+- Loads ALL posts from Instagram page (scrolls to bottom)
+- Smart duplicate detection (won't recreate existing products)
+- Works with both public and private accounts
+- Handles infinite scroll and loading indicators
 
-## Output Structure
+### 🤖 Anti-Detection
+- Stealth browser configuration
+- Human-like mouse movements and scrolling
+- Realistic headers and user agent
+- Manual login (most human-like approach)
+- Random delays and behaviors
 
-For each Instagram post, the script creates:
+### 🛡️ Modal/Captcha Handling
+- Automatic detection of security challenges
+- Pauses script for manual intervention
+- Supports captcha, 2FA, and verification codes
+- Context-aware modal checking (avoids false positives)
 
-1. **Product Directory**: `site/content/products/instagram-post-{id}/`
-2. **Markdown File**: `index.md` with Hugo front matter
-3. **Image File**: Downloaded to `site/static/img/products/{id}.jpg`
+### 📁 CMS Integration
+- Images saved to `/img/` folder (visible in CMS media library)
+- Hugo-compatible markdown files
+- Proper frontmatter with metadata
+- SEO-friendly slugs and descriptions
 
-## Generated Hugo Front Matter
+### 🔐 Session Management
+- Persistent login sessions (48-hour validity)
+- Automatic session restoration
+- Secure cookie and session storage
+- Session validation and cleanup
 
-```yaml
----
-title: "Instagram Post ABC123"
-date: 2025-08-05
-description: "Beautiful jewelry piece from our Instagram collection"
-image: "/img/products/ABC123.jpg"
-pricing:
-  - text: "Contact for pricing"
-    price: ""
-weight: 100
-draft: false
-instagram_post: "https://www.instagram.com/p/ABC123/"
-instagram_id: "ABC123"
----
+## File Structure
+
+```
+scripts/
+├── interactive.js           # Main interactive sync script
+├── instagram-scraper.js     # Core Instagram scraper class
+├── replace-jewelry-images.js # Site theme replacement
+└── README.md               # This documentation
 ```
 
-## Security & Credentials
+## Usage Examples
 
-### For Private Pages
-
-When scraping private Instagram pages, you'll need to provide your login credentials. The script supports several ways to do this:
-
-#### Method 1: Command Line Arguments
-```bash
-node scripts/instagram-scraper.js "https://www.instagram.com/privatepage/" --username=myuser --password=mypass
-```
-
-#### Method 2: Interactive Mode (Recommended)
+### Sync a Public Instagram Account
 ```bash
 yarn scrape:interactive
-# You'll be prompted for credentials only if needed
+# Enter: https://www.instagram.com/publicjewelrypage/
+# Choose: N (not private)
+# Script will sync all posts automatically
 ```
 
-#### Method 3: Programmatic
-```javascript
-const scraper = new InstagramScraper({
-  username: 'your_username',
-  password: 'your_password'
-});
+### Sync a Private Instagram Account
+```bash
+yarn scrape:interactive
+# Enter: https://www.instagram.com/privatejewelrypage/
+# Choose: y (is private)
+# Browser opens for manual login
+# Complete login manually, script continues automatically
 ```
 
-### Security Considerations
+### Clear Session and Start Fresh
+```bash
+yarn scrape:clear-session
+yarn scrape:interactive
+# Fresh session, will require login again
+```
 
-⚠️ **Important Security Notes:**
+## Requirements
 
-1. **Never commit credentials to your repository**
-2. **Use environment variables for automation:**
-   ```bash
-   export INSTAGRAM_USERNAME="your_username"
-   export INSTAGRAM_PASSWORD="your_password"
-   ```
-3. **Consider using Instagram Basic Display API for production use**
-4. **Be aware of Instagram's rate limits and terms of service**
-5. **The script runs in non-headless mode by default so you can monitor the login process**
-
-### Two-Factor Authentication
-
-If your account has 2FA enabled:
-1. The script will pause at the 2FA screen
-2. You can manually enter the code in the browser
-3. The script will continue once you're logged in
+- Node.js and Yarn/NPM
+- Chrome browser (installed automatically by Puppeteer)
+- Internet connection
+- For private accounts: Valid Instagram credentials
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **"Could not find Chrome" Error**
-   ```bash
-   # Install Chrome for Puppeteer
-   npx puppeteer browsers install chrome
-   
-   # Test the installation
-   yarn scrape:test
-   ```
-
-2. **Instagram blocks the scraper**
-   - Try running with `headless: false` to see what's happening
-   - Add more delays between requests
-   - Use different User-Agent strings
-
-3. **No posts found**
-   - Instagram might have changed their HTML structure
-   - Check the selectors in the `extractPosts()` method
-   - Try accessing the page manually first
-
-4. **Images not downloading**
-   - Check if the image URLs are valid
-   - Ensure the `site/static/img/products/` directory exists
-   - Check file permissions
-
-### Debug Mode
-
-Set `headless: false` in the script to see the browser in action:
-
-```javascript
-this.browser = await puppeteer.launch({
-  headless: false, // This will show the browser
-  // ... other options
-});
+### "Chrome not found" Error
+```bash
+npx puppeteer browsers install chrome
 ```
 
-## Notes
+### Session Issues
+```bash
+yarn scrape:clear-session
+```
 
-- The script respects Instagram's rate limits with built-in delays
-- Images are downloaded directly from Instagram's CDN
-- Products are created with basic Hugo front matter - customize as needed
-- The script can handle various Instagram post layouts
-- All posts are marked as draft initially - review before publishing
+### Network/Proxy Issues
+- Check your internet connection
+- The script uses `localhost:10808` proxy by default
+- Modify proxy settings in `instagram-scraper.js` if needed
+
+## Output
+
+The script creates:
+- **Products**: `site/content/products/instagram-post-[ID]/index.md`
+- **Images**: `site/static/img/instagram-[ID].[ext]`
+- **Profile Data**: `site/data/instagram-profile.json`
+- **Logo**: Profile image copied as site logo
+
+All content is immediately available in your Decap CMS for editing and management.

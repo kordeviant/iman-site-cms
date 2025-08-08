@@ -17,18 +17,22 @@ collections: # A list of collections the CMS should be able to edit
       - {label: "Body", name: "body", widget: "markdown"}
   - name: "product" # Collection for individual products
     label: "Products" # Used in the UI
-    folder: "site/content/products/products" # Folder for individual products
+    folder: "site/content/products" # Folder for individual products
     path: "{{slug}}/index" # Each product is inside a folder with the slug name
     create: true # Allow users to create new products
     fields: # Fields for each product
       - {label: "Title", name: "title", widget: "string"}
       - {label: "Date", name: "date", widget: "datetime"}
       - {label: "Description", name: "description", widget: "text"}
-      - {label: "Image", name: "image", widget: "image"}
+      - {label: "Primary Image", name: "image", widget: "image"}
+      - {label: "Gallery Images", name: "gallery", widget: "list", field: {label: "Image", name: "image", widget: "image"}, required: false}
       - {label: "Price", name: "price", widget: "number", value_type: "float", min: 0}
-      - {label: "Category", name: "category", widget: "string"}
+      - {label: "Category", name: "category", widget: "string", default: "Jewelry"}
       - {label: "In Stock", name: "in_stock", widget: "boolean", default: true}
       - {label: "Featured", name: "featured", widget: "boolean", default: false}
+      - {label: "Instagram Post URL", name: "instagram_post", widget: "string", required: false}
+      - {label: "Instagram ID", name: "instagram_id", widget: "string", required: false}
+      - {label: "Instagram Account", name: "instagram_account", widget: "string", required: false}
       - {label: "Body", name: "body", widget: "markdown"}
   - name: "pages"
     label: "Pages"
