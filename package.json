@@ -31,6 +31,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "hugo-bin": "^0.98.0",
     "netlify-cms-proxy-server": "^1.3.24",
     "puppeteer": "^24.16.0",
     "puppeteer-extra": "^3.3.6",
@@ -61,7 +62,6 @@
     "exports-loader": "^3.1.0",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.0",
-    "hugo-bin": "^0.98.0",
     "immutable": "^4.1.0",
     "imports-loader": "^3.1.1",
     "mini-css-extract-plugin": "^2.4.4",
