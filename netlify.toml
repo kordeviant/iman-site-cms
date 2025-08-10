@@ -3,13 +3,14 @@
   YARN_VERSION = "1.22.17"
   NODE_VERSION = "22.18"
   NODE_ENV = "production"
+  HUGO_VERSION = "0.110.0"
 
 [build]
-  command = "yarn build"
+  command = "yarn build:netlify"
   publish = "dist"
 
 [context.deploy-preview]
-  command = "yarn build:preview"
+  command = "yarn build:netlify"
 
 [dev]
   framework = "hugo"
