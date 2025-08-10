@@ -5,38 +5,38 @@
  * - Persistent browser data stored in d:\puppeteer-data
  * - Maintains login sessions across script runs (no more repeated logins!)
  * - Acts like a normal browser with saved cookies, cache, and preferences
-      if (!str) return '';
-      // Replace problematic characters and use proper YAML escaping
-      return str
-        .replace(/\\/g, '\\\\')  // Escape backslashes
-        .replace(/"/g, '\\"')    // Escape quotes
-        .replace(/\n/g, '\\n')   // Escape newlines
-        .replace(/\r/g, '')      // Remove carriage returns
-        .replace(/\t/g, ' ')     // Replace tabs with spaces
-        .trim();
-    };
+ * - Downloads all media types (images, videos, carousels)
+ * - Creates Hugo-compatible product pages
+ * - Handles Instagram's anti-bot measures gracefully
+ * - Automatic retries and error recovery
+ */
 
-    const markdownContent = `---
-title: "${escapeYaml(post.title)}"
-date: ${post.date}
-description: "${escapeYaml(post.description || 'Beautiful jewelry piece from our Instagram collection')}"
-image: "/img/${primaryMedia}"
-${allGallery.length > 0 ? `gallery:\n${allGallery.map(url => `  - "${url}"`).join('\n')}\n` : ''}${mediaFiles.images.length > 0 ? `images:\n${mediaFiles.images.map(img => `  - url: "${img.url}"\n    alt: "${escapeYaml(img.alt)}"\n    width: ${img.width}\n    height: ${img.height}`).join('\n')}\n` : ''}${mediaFiles.videos.length > 0 ? `videos:\n${mediaFiles.videos.map(vid => `  - url: "${vid.url}"\n    type: "${vid.type}"\n    width: ${vid.width}\n    height: ${vid.height}${vid.poster ? `\n    poster: "${vid.poster}"` : ''}`).join('\n')}\n` : ''}price: 0
-category: "Instagram Collection"
-in_stock: true
-featured: false
-weight: 100
----
-
-${post.description || 'This beautiful jewelry piece is part of our exclusive collection. Contact us for more details and pricing.'}
-
-## Product Details
-
-- **Post ID**: ${post.id}
-- **Account**: ${profileUsername || 'N/A'}
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const { promisify } = require('util');
 
 class InstagramScraper {
-  // ...existing code...
+  constructor(credentials = {}) {
+    this.credentials = credentials;
+    this.userDataDir = path.join('d:', 'puppeteer-data');
+    this.baseDir = path.join(__dirname, '../site/static/img/products');
+    this.contentDir = path.join(__dirname, '../site/content/products');
+    this.imagesDir = this.baseDir;
+    
+    // Ensure directories exist
+    this.ensureDirectories();
+  }
+
+  ensureDirectories() {
+    [this.userDataDir, this.baseDir, this.contentDir, this.imagesDir].forEach(dir => {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    });
+  }
+
   getVideoExtension(videoUrl) {
     // Extract extension from URL
     const urlParts = videoUrl.split('?')[0]; // Remove query parameters
@@ -109,114 +109,131 @@ class InstagramScraper {
   async cleanExistingInstagramProducts() {
     console.log("🧹 Cleaning existing Instagram products...");
     try {
-      const productsDirs = fs.readdirSync(this.outputDir);
-      let removedCount = 0;
-      for (const dir of productsDirs) {
-        const fullPath = path.join(this.outputDir, dir);
-        if (fs.statSync(fullPath).isDirectory() && dir.startsWith('instagram-post-')) {
-          console.log(`🗑️ Removing existing Instagram product: ${dir}`);
-          // Remove the directory and all its contents
-          fs.rmSync(fullPath, { recursive: true, force: true });
-          removedCount++;
+      // Clean product content files
+      const files = fs.readdirSync(this.contentDir);
+      let cleaned = 0;
+      
+      for (const file of files) {
+        if (file.startsWith('instagram-') && file.endsWith('.md')) {
+          fs.unlinkSync(path.join(this.contentDir, file));
+          cleaned++;
         }
       }
-      console.log(`✅ Removed ${removedCount} existing Instagram products`);
-      return removedCount;
-    } catch (error) {
-      console.error("❌ Error cleaning existing products:", error.message);
-      return 0;
-    }
-  }
-
-  async createProductMarkdown(post, mediaFiles, profileUsername) {
-    const slug = this.createSlug(post.title);
-    const productDir = path.join(this.outputDir, slug);
-    this.ensureDirectoryExists(productDir);
-    // Determine primary media and build gallery
-    const primaryMedia = mediaFiles.primaryMedia;
-    const primaryMediaType = mediaFiles.mediaType;
-    // Build gallery arrays for images and videos
-    const imageGallery = mediaFiles.images.length > 1 ? 
-      mediaFiles.images.slice(1).map(img => img.url) : [];
-    const videoGallery = mediaFiles.videos.map(vid => vid.url);
-    // Combine all media for gallery (excluding primary)
-    const allGallery = [...imageGallery, ...videoGallery];
-    // Create media metadata for CMS
-    const mediaMetadata = {
-      images: mediaFiles.images,
-      videos: mediaFiles.videos,
-      primaryType: primaryMediaType
-    };
-    // Helper function to safely escape YAML strings
-    const escapeYaml = (str) => {
-      if (!str) return '';
-      // Replace problematic characters and use proper YAML escaping
-      return str
-        .replace(/\\/g, '\\\\')  // Escape backslashes
-        .replace(/"/g, '\\"')    // Escape quotes
-        .replace(/\n/g, '\\n')   // Escape newlines
-        .replace(/\r/g, '')      // Remove carriage returns
-        .replace(/\t/g, ' ')     // Replace tabs with spaces
-        .trim();
-    };
-    const markdownContent = `---
       
-      return {
-        total: syncResults.total,
-        existing: syncResults.existing,
-        newProducts: successful.length,
-        failed: failed.length,
-        results: syncResults.results,
-        profile: profile
-      };
-      
+      console.log(`✅ Cleaned ${cleaned} existing Instagram product files`);
     } catch (error) {
-      console.error("❌ Fatal error:", error);
-      throw error;
-    } finally {
-      await this.close();
+      console.log("⚠️ Could not clean existing files:", error.message);
     }
-}
-
-// Export for use as module
-module.exports = {InstagramScraper};
-
-📱 Instagram to CMS Products Sync Tool with Smart Modal Handling
-
-Usage: node instagram-scraper.js <instagram-url> [options]
-
-Examples:
-  node instagram-scraper.js "https://www.instagram.com/yourbrand/"
-  node instagram-scraper.js "https://www.instagram.com/privatepage/" --username=myuser --password=mypass
-
-    const markdownPath = path.join(productDir, 'index.md');
-    fs.writeFileSync(markdownPath, markdownContent);
-    // Also save media metadata as JSON for advanced CMS features
-    const metadataPath = path.join(productDir, 'media.json');
-    fs.writeFileSync(metadataPath, JSON.stringify(mediaMetadata, null, 2));
-    console.log(`✅ Created CMS product with ${mediaFiles.images.length + mediaFiles.videos.length} media files: ${slug}`);
-    return slug;
   }
 
-  createSlug(title) {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
+  async downloadMedia(url, filename, type = "image") {
+    return new Promise((resolve) => {
+      try {
+        const filePath = path.join(this.imagesDir, filename);
+        const file = fs.createWriteStream(filePath);
+        
+        const request = https.get(url, (response) => {
+          if (response.statusCode === 200) {
+            response.pipe(file);
+            file.on('finish', () => {
+              file.close();
+              console.log(`✅ Downloaded ${type}: ${filename}`);
+              resolve(true);
+            });
+          } else {
+            console.log(`❌ Failed to download ${type} (${response.statusCode}): ${filename}`);
+            file.close();
+            fs.unlink(filePath, () => {}); // Delete incomplete file
+            resolve(false);
+          }
+        });
+        
+        request.on('error', (error) => {
+          console.log(`❌ Error downloading ${type}: ${error.message}`);
+          file.close();
+          fs.unlink(filePath, () => {}); // Delete incomplete file
+          resolve(false);
+        });
+        
+        file.on('error', (error) => {
+          console.log(`❌ File error for ${type}: ${error.message}`);
+          fs.unlink(filePath, () => {}); // Delete incomplete file
+          resolve(false);
+        });
+        
+      } catch (error) {
+        console.log(`❌ Exception downloading ${type}: ${error.message}`);
+        resolve(false);
+      }
+    });
   }
 
-  async saveProfileInfo(profileInfo) {
-    if (!profileInfo) {
-      console.log("⚠️ No profile info to save");
-      return;
-    }
+  async createProductPage(post, mediaFiles) {
     try {
-      console.log("💾 Saving profile information...");
-      // Save profile info as JSON for Hugo data
-      const dataDir = path.join(this.outputDir, "..", "data");
-      this.ensureDirectoryExists(dataDir);
+      const slug = `instagram-${post.id}`;
+      const filename = `${slug}.md`;
+      const filepath = path.join(this.contentDir, filename);
+
+      // Primary media for the main image
+      const primaryMedia = mediaFiles.images.length > 0 
+        ? mediaFiles.images[0].filename 
+        : (mediaFiles.videos.length > 0 ? mediaFiles.videos[0].filename : '');
+
+      // Gallery images for Hugo gallery
+      const allGallery = [...mediaFiles.images, ...mediaFiles.videos].map(media => 
+        `/img/products/${media.filename}`
+      );
+
+      // Helper function to escape YAML strings
+      const escapeYaml = (str) => {
+        if (!str) return '';
+        // Replace problematic characters and use proper YAML escaping
+        return str
+          .replace(/\\/g, '\\\\')  // Escape backslashes
+          .replace(/"/g, '\\"')    // Escape quotes
+          .replace(/\n/g, '\\n')   // Escape newlines
+          .replace(/\r/g, '')      // Remove carriage returns
+          .replace(/\t/g, ' ')     // Replace tabs with spaces
+          .trim();
+      };
+
+      const markdownContent = `---
+title: "${escapeYaml(post.title)}"
+date: ${post.date}
+description: "${escapeYaml(post.description || 'Beautiful jewelry piece from our Instagram collection')}"
+image: "/img/products/${primaryMedia}"
+${allGallery.length > 0 ? `gallery:\n${allGallery.map(url => `  - "${url}"`).join('\n')}\n` : ''}${mediaFiles.images.length > 0 ? `images:\n${mediaFiles.images.map(img => `  - url: "/img/products/${img.filename}"\n    alt: "${escapeYaml(img.alt)}"\n    width: ${img.width}\n    height: ${img.height}`).join('\n')}\n` : ''}${mediaFiles.videos.length > 0 ? `videos:\n${mediaFiles.videos.map(vid => `  - url: "/img/products/${vid.filename}"\n    type: "${vid.type}"\n    width: ${vid.width}\n    height: ${vid.height}${vid.poster ? `\n    poster: "/img/products/${vid.poster}"` : ''}`).join('\n')}\n` : ''}price: 0
+category: "Instagram Collection"
+in_stock: true
+featured: false
+weight: 100
+---
+
+${post.description || 'This beautiful jewelry piece is part of our exclusive collection. Contact us for more details and pricing.'}
+
+## Product Details
+
+- **Post ID**: ${post.id}
+- **Posted**: ${new Date(post.date).toLocaleDateString()}
+- **Source**: Instagram
+
+${mediaFiles.images.length > 0 ? '## Images\n\n' + mediaFiles.images.map(img => `![${img.alt}](/img/products/${img.filename})`).join('\n\n') : ''}
+
+${mediaFiles.videos.length > 0 ? '## Videos\n\n' + mediaFiles.videos.map(vid => `<video controls width="${vid.width}" height="${vid.height}">\n  <source src="/img/products/${vid.filename}" type="${vid.type}">\n  Your browser does not support the video tag.\n</video>`).join('\n\n') : ''}
+`;
+
+      fs.writeFileSync(filepath, markdownContent);
+      console.log(`✅ Created product page: ${filename}`);
+      return filename;
+    } catch (error) {
+      console.error("❌ Error creating product page:", error.message);
+      return null;
+    }
+  }
+
+  async updateInstagramProfile(profileInfo) {
+    try {
+      const profilePath = path.join(__dirname, '../site/content/data/instagram-profile.json');
       const profileData = {
         username: profileInfo.username,
         displayName: profileInfo.displayName,
@@ -229,290 +246,429 @@ Examples:
         },
         lastUpdated: new Date().toISOString()
       };
-      const profilePath = path.join(dataDir, "instagram-profile.json");
+
       fs.writeFileSync(profilePath, JSON.stringify(profileData, null, 2));
-      console.log(`✅ Profile information saved to: ${profilePath}`);
-      return profilePath;
+      console.log("✅ Updated Instagram profile data");
     } catch (error) {
-      console.error("❌ Error saving profile info:", error.message);
-      return null;
+      console.error("❌ Error updating profile data:", error.message);
     }
   }
 
-  async getExistingProductIds() {
-    console.log("🔍 Checking for existing Instagram products...");
+  async launchBrowser() {
+    console.log("🚀 Launching browser with persistent data...");
+    this.browser = await puppeteer.launch({
+      headless: false,
+      userDataDir: this.userDataDir,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu'
+      ]
+    });
+    
+    this.page = await this.browser.newPage();
+    await this.page.setViewport({ width: 1366, height: 768 });
+    await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+  }
+
+  async closeBrowser() {
+    if (this.browser) {
+      await this.browser.close();
+    }
+  }
+
+  // Alias methods for compatibility with interactive script
+  async init() {
+    return await this.launchBrowser();
+  }
+
+  async close() {
+    return await this.closeBrowser();
+  }
+
+  async clearSavedSession() {
     try {
-      const existingIds = new Set();
-      if (!fs.existsSync(this.outputDir)) {
-        console.log("📁 Products directory doesn't exist yet");
-        return existingIds;
+      const fs = require('fs');
+      if (fs.existsSync(this.userDataDir)) {
+        console.log("🧹 Clearing saved browser session...");
+        fs.rmSync(this.userDataDir, { recursive: true, force: true });
+        console.log("✅ Browser session cleared");
       }
-      const productDirs = fs.readdirSync(this.outputDir);
-      for (const dir of productDirs) {
-        const fullPath = path.join(this.outputDir, dir);
-        if (fs.statSync(fullPath).isDirectory()) {
-          const indexPath = path.join(fullPath, 'index.md');
-          if (fs.existsSync(indexPath)) {
-            try {
-              const content = fs.readFileSync(indexPath, 'utf8');
-              // Extract Instagram ID from frontmatter
-              const instagramIdMatch = content.match(/instagram_id:\s*"([^"]+)"/);
-              if (instagramIdMatch) {
-                existingIds.add(instagramIdMatch[1]);
-              }
-              // Also check for old-style post IDs in directory names
-              if (dir.startsWith('instagram-post-')) {
-                const oldStyleId = dir.replace('instagram-post-', '');
-                existingIds.add(oldStyleId);
-              }
-            } catch (error) {
-              console.log(`⚠️ Could not read ${indexPath}:`, error.message);
-            }
-          }
-        }
-      }
-      console.log(`📊 Found ${existingIds.size} existing Instagram products`);
-      return existingIds;
     } catch (error) {
-      console.error("❌ Error checking existing products:", error.message);
-      return new Set();
+      console.log("⚠️ Could not clear session:", error.message);
+    }
+  }
+
+  async scrapeInstagramPage(instagramUrl) {
+    try {
+      // Navigate to Instagram URL
+      console.log(`🔗 Navigating to: ${instagramUrl}`);
+      await this.page.goto(instagramUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+      
+      // Wait for page to load
+      await this.page.waitForTimeout(3000);
+      
+      // Check if login is required
+      const loginRequired = await this.page.$('input[name="username"]');
+      if (loginRequired) {
+        console.log("🔐 Login required...");
+        console.log("⏳ Please log in manually in the browser, then press Enter to continue...");
+        await new Promise(resolve => {
+          process.stdin.once('data', resolve);
+        });
+      }
+      
+      // Wait for content to load
+      await this.page.waitForTimeout(2000);
+      
+      // Get profile information
+      const profile = await this.scrapeProfileInfo();
+      
+      // Get all posts
+      const posts = await this.scrapePosts(50); // Get more posts for interactive mode
+      
+      return { profile, posts };
+    } catch (error) {
+      console.error("❌ Error scraping Instagram page:", error.message);
+      throw error;
+    }
+  }
+
+  async saveProfileInfo(profile) {
+    if (profile) {
+      await this.updateInstagramProfile(profile);
     }
   }
 
   async syncPostsWithProducts(posts, profileUsername) {
-    console.log(`🔄 Syncing ${posts.length} posts with existing products...`);
-    // Get existing product IDs
-    const existingIds = await this.getExistingProductIds();
-    // Filter out posts that already have products
-    const newPosts = posts.filter(post => !existingIds.has(post.id));
-    const skippedPosts = posts.filter(post => existingIds.has(post.id));
-    console.log(`📊 Sync Analysis:`);
-    console.log(`   Total posts found: ${posts.length}`);
-    console.log(`   Already have products: ${skippedPosts.length}`);
-    console.log(`   New posts to process: ${newPosts.length}`);
-    if (skippedPosts.length > 0) {
-      console.log(`⏭️ Skipping existing products for posts: ${skippedPosts.map(p => p.id).join(', ')}`);
-    }
-    if (newPosts.length === 0) {
-      console.log(`✅ All posts are already synced as products! No new work needed.`);
-      return {
-        total: posts.length,
-        existing: skippedPosts.length,
-        processed: 0,
-        results: []
-      };
-    }
-    console.log(`🚀 Processing ${newPosts.length} new posts...`);
-    // Process only the new posts
-    const results = [];
-    for (let i = 0; i < newPosts.length; i++) {
-      const post = newPosts[i];
-      console.log(`Processing new post ${i + 1}/${newPosts.length}: ${post.id} (${post.type})`);
+    const results = { total: posts.length, successful: 0, failed: 0 };
+    
+    // Clean existing Instagram products
+    await this.cleanExistingInstagramProducts();
+    
+    // Process each post
+    for (const post of posts) {
       try {
-        // Download all media files for this post
+        console.log(`\n📝 Processing post: ${post.id}`);
+        
+        // Download media files
         const mediaFiles = await this.downloadPostMedia(post);
-        if (mediaFiles.primaryMedia) {
-          // Create CMS-compatible product markdown with media support
-          const productSlug = await this.createProductMarkdown(post, mediaFiles, profileUsername);
-          results.push({
-            success: true,
-            postId: post.id,
-            productSlug: productSlug,
-            mediaFiles: mediaFiles,
-            mediaCount: mediaFiles.images.length + mediaFiles.videos.length,
-            primaryMediaType: mediaFiles.mediaType,
-            isNew: true
-          });
-          console.log(`✅ Created product with ${mediaFiles.images.length} images and ${mediaFiles.videos.length} videos`);
+        
+        // Create product page
+        const productFile = await this.createProductPage(post, mediaFiles);
+        
+        if (productFile) {
+          results.successful++;
+          console.log(`✅ Successfully created product: ${productFile}`);
         } else {
-          results.push({
-            success: false,
-            postId: post.id,
-            error: "No media files could be downloaded",
-            isNew: true
+          results.failed++;
+        }
+        
+        // Rate limiting
+        await this.page.waitForTimeout(2000);
+        
+      } catch (error) {
+        console.error(`❌ Error processing post ${post.id}:`, error.message);
+        results.failed++;
+      }
+    }
+    
+    return results;
+  }
+
+  async scrapeAndCreateProducts(instagramUrl, options = {}) {
+    const startTime = Date.now();
+    let results = { total: 0, successful: 0, failed: 0 };
+    
+    try {
+      await this.launchBrowser();
+      
+      // Navigate to Instagram URL
+      console.log(`🔗 Navigating to: ${instagramUrl}`);
+      await this.page.goto(instagramUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+      
+      // Wait for page to load
+      await this.page.waitForTimeout(3000);
+      
+      // Check if login is required
+      const loginRequired = await this.page.$('input[name="username"]');
+      if (loginRequired) {
+        console.log("🔐 Login required...");
+        if (this.credentials.username && this.credentials.password) {
+          await this.handleLogin();
+        } else {
+          console.log("⏳ Please log in manually in the browser, then press Enter to continue...");
+          await new Promise(resolve => {
+            process.stdin.once('data', resolve);
           });
         }
-        // Add delay between requests to be respectful
-        await this.wait(2000); // Increased delay for media downloads
-      } catch (error) {
-        console.error(`❌ Error processing post ${post.id}:`, error);
-        results.push({
-          success: false,
-          postId: post.id,
-          error: error.message,
-          isNew: true
-        });
       }
-    }
-    return {
-      total: posts.length,
-      existing: skippedPosts.length,
-      processed: newPosts.length,
-      results: results
-    };
-  }
-
-  async close() {
-    try {
-      if (this.browser) {
-        // Save session one more time before closing
-        if (this.isLoggedIn) {
-          console.log('💾 Saving final session before closing...');
-          try {
-            await this.saveSession();
-            console.log('✅ Final session saved successfully!');
-          } catch (sessionError) {
-            console.error('⚠️  Warning: Could not save final session:', sessionError.message);
-          }
-        }
-        console.log('🔄 Closing browser...');
-        await this.browser.close();
-        console.log('✅ Browser closed successfully');
-      }
-    } catch (error) {
-      console.error('❌ Error closing browser:', error.message);
-      // Force close if normal close fails
-      try {
-        if (this.browser) {
-          await this.browser.close();
-        }
-      } catch (forceCloseError) {
-        console.error('❌ Force close also failed:', forceCloseError.message);
-      }
-    }
-  }
-
-  // Method to manually clear saved session
-  async clearSavedSession() {
-    console.log('🗑️  Clearing saved login session...');
-    this.clearSession();
-    this.isLoggedIn = false;
-    console.log('✅ Session cleared! You will need to login again next time.');
-  }
-
-  // Main method to scrape and sync Instagram posts with CMS products
-  async scrapeAndCreateProducts(instagramUrl, options = {}) {
-    const {
-      cleanExisting = false // Changed default to false since we're syncing now
-    } = options;
-    try {
-      await this.init();
-      // Only clean existing Instagram products if explicitly requested
-      if (cleanExisting) {
-        console.log("🧹 Cleaning existing products as requested...");
+      
+      // Wait for content to load
+      await this.page.waitForTimeout(2000);
+      
+      // Clean existing Instagram products if requested
+      if (options.cleanExisting) {
         await this.cleanExistingInstagramProducts();
       }
-      // Scrape Instagram page to get all posts
-      const scrapedData = await this.scrapeInstagramPage(instagramUrl);
-      const posts = scrapedData.posts;
-      const profile = scrapedData.profile;
-      // Save profile information and handle logo replacement
+      
+      // Get profile information
+      const profile = await this.scrapeProfileInfo();
       if (profile) {
-        await this.saveProfileInfo(profile);
-      }
-      // Sync posts with existing products (only create new ones)
-      const syncResults = await this.syncPostsWithProducts(posts, profile?.username);
-      // Generate summary
-      const successful = syncResults.results.filter(r => r.success);
-      const failed = syncResults.results.filter(r => !r.success);
-      console.log("\n📊 SYNC SUMMARY:");
-      console.log(`📄 Total posts on page: ${syncResults.total}`);
-      console.log(`✅ Already synced as products: ${syncResults.existing}`);
-      console.log(`🆕 New products created: ${successful.length}`);
-      console.log(`❌ Failed to create: ${failed.length}`);
-      console.log(`📁 Images stored in: /img/ (visible in CMS media library)`);
-      if (profile) {
-        console.log(`👤 Profile: ${profile.username || "Unknown"}`);
+        console.log(`👤 Profile: ${profile.username} (${profile.displayName})`);
+        console.log(`📊 Posts: ${profile.postsCount}, Followers: ${profile.followersCount}, Following: ${profile.followingCount}`);
         console.log(`🖼️ Profile image: ${profile.profileImageFile ? "Downloaded and set as logo" : "Not found"}`);
+        
+        // Update profile data
+        await this.updateInstagramProfile(profile);
       }
-      if (syncResults.existing > 0) {
-        console.log(`\n⏭️ Skipped ${syncResults.existing} posts that already have products`);
+      
+      // Get all posts
+      const posts = await this.scrapePosts(options.limit || 10);
+      results.total = posts.length;
+      
+      console.log(`📱 Found ${posts.length} posts to process`);
+      
+      // Process each post
+      for (const post of posts) {
+        try {
+          console.log(`\n📝 Processing post: ${post.id}`);
+          
+          // Download media files
+          const mediaFiles = await this.downloadPostMedia(post);
+          
+          // Create product page
+          const productFile = await this.createProductPage(post, mediaFiles);
+          
+          if (productFile) {
+            results.successful++;
+            console.log(`✅ Successfully created product: ${productFile}`);
+          } else {
+            results.failed++;
+          }
+          
+          // Rate limiting
+          await this.page.waitForTimeout(2000);
+          
+        } catch (error) {
+          console.error(`❌ Error processing post ${post.id}:`, error.message);
+          results.failed++;
+        }
       }
-      if (failed.length > 0) {
-        console.log("\n❌ Failed posts:");
-        failed.forEach(f => {
-          console.log(`- ${f.postId}: ${f.error}`);
-        });
-      }
-      console.log("\n🎯 Next Steps:");
-      console.log("1. All Instagram posts are now synced as CMS products");
-      console.log("2. Only new posts were processed to avoid duplicates");
-      console.log("3. Run this script again to sync any newly posted content");
-      console.log("4. Edit product details through the CMS admin panel");
-      console.log("5. Images are visible in CMS media library with 'instagram-' prefix");
-      return {
-        total: syncResults.total,
-        existing: syncResults.existing,
-        newProducts: successful.length,
-        failed: failed.length,
-        results: syncResults.results,
-        profile: profile
-      };
+      
     } catch (error) {
-      console.error("❌ Fatal error:", error);
+      console.error("💥 Critical error during scraping:", error);
       throw error;
     } finally {
-      await this.close();
+      await this.closeBrowser();
+      const duration = Math.round((Date.now() - startTime) / 1000);
+      console.log(`\n⏱️ Total time: ${duration}s`);
+    }
+    
+    return results;
+  }
+
+  async handleLogin() {
+    try {
+      console.log("🔑 Attempting automatic login...");
+      
+      await this.page.type('input[name="username"]', this.credentials.username);
+      await this.page.type('input[name="password"]', this.credentials.password);
+      
+      await this.page.click('button[type="submit"]');
+      await this.page.waitForTimeout(3000);
+      
+      // Check for save login info dialog
+      const saveInfoButton = await this.page.$('button:contains("Not Now")');
+      if (saveInfoButton) {
+        await saveInfoButton.click();
+        await this.page.waitForTimeout(1000);
+      }
+      
+      console.log("✅ Login successful");
+    } catch (error) {
+      console.error("❌ Login failed:", error.message);
+      throw error;
+    }
+  }
+
+  async scrapeProfileInfo() {
+    try {
+      console.log("👤 Scraping profile information...");
+      
+      // Get basic profile info
+      const profileInfo = await this.page.evaluate(() => {
+        const getTextContent = (selector) => {
+          const element = document.querySelector(selector);
+          return element ? element.textContent.trim() : '';
+        };
+        
+        const getImageSrc = (selector) => {
+          const element = document.querySelector(selector);
+          return element ? element.src : '';
+        };
+        
+        // Try different selectors for profile image
+        const profileImageSelectors = [
+          'img[data-testid="user-avatar"]',
+          'header img',
+          'article img',
+          'img[alt*="profile picture"]'
+        ];
+        
+        let profileImageUrl = '';
+        for (const selector of profileImageSelectors) {
+          profileImageUrl = getImageSrc(selector);
+          if (profileImageUrl) break;
+        }
+        
+        return {
+          username: window.location.pathname.replace('/', ''),
+          displayName: getTextContent('h2') || getTextContent('h1'),
+          bio: getTextContent('div[data-testid="user-bio"]') || getTextContent('div.-vDIg span'),
+          profileImageUrl: profileImageUrl,
+          postsCount: getTextContent('a[href*="/"] span').replace(/,/g, ''),
+          followersCount: getTextContent('a[href*="/followers/"] span') || getTextContent('a[href*="/followers/"] title'),
+          followingCount: getTextContent('a[href*="/following/"] span')
+        };
+      });
+      
+      // Download profile image if available
+      if (profileInfo.profileImageUrl) {
+        profileInfo.profileImageFile = await this.downloadProfileImage(profileInfo);
+      }
+      
+      return profileInfo;
+    } catch (error) {
+      console.error("❌ Error scraping profile info:", error.message);
+      return null;
+    }
+  }
+
+  async scrapePosts(limit = 10) {
+    try {
+      console.log(`📱 Scraping up to ${limit} posts...`);
+      
+      // Scroll to load posts
+      await this.scrollToLoadPosts();
+      
+      const posts = await this.page.evaluate((limit) => {
+        const postElements = document.querySelectorAll('article div[role="button"]:has(img), a[href*="/p/"]');
+        const posts = [];
+        
+        for (let i = 0; i < Math.min(postElements.length, limit); i++) {
+          const element = postElements[i];
+          const link = element.href || element.closest('a')?.href;
+          
+          if (link && link.includes('/p/')) {
+            const postId = link.split('/p/')[1].split('/')[0];
+            const img = element.querySelector('img');
+            
+            posts.push({
+              id: postId,
+              url: link,
+              title: `Instagram Post ${postId}`,
+              description: img ? img.alt : '',
+              date: new Date().toISOString()
+            });
+          }
+        }
+        
+        return posts;
+      }, limit);
+      
+      console.log(`✅ Found ${posts.length} posts`);
+      return posts;
+    } catch (error) {
+      console.error("❌ Error scraping posts:", error.message);
+      return [];
+    }
+  }
+
+  async scrollToLoadPosts() {
+    console.log("📜 Scrolling to load posts...");
+    
+    for (let i = 0; i < 3; i++) {
+      await this.page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+      await this.page.waitForTimeout(2000);
+    }
+  }
+
+  async downloadPostMedia(post) {
+    try {
+      console.log(`📸 Downloading media for post: ${post.id}`);
+      
+      // Navigate to post
+      await this.page.goto(post.url, { waitUntil: 'networkidle2' });
+      await this.page.waitForTimeout(2000);
+      
+      // Get media URLs
+      const mediaUrls = await this.page.evaluate(() => {
+        const images = Array.from(document.querySelectorAll('img')).map(img => ({
+          url: img.src,
+          alt: img.alt || 'Instagram image',
+          width: img.naturalWidth || 0,
+          height: img.naturalHeight || 0
+        }));
+        
+        const videos = Array.from(document.querySelectorAll('video')).map(video => ({
+          url: video.src,
+          type: video.type || 'video/mp4',
+          width: video.videoWidth || 0,
+          height: video.videoHeight || 0
+        }));
+        
+        return { images, videos };
+      });
+      
+      const mediaFiles = { images: [], videos: [] };
+      
+      // Download images
+      for (let i = 0; i < mediaUrls.images.length; i++) {
+        const img = mediaUrls.images[i];
+        if (img.url && !img.url.includes('profile') && img.width > 100) {
+          const filename = `${post.id}-img-${i + 1}.jpg`;
+          const success = await this.downloadMedia(img.url, filename, 'image');
+          if (success) {
+            mediaFiles.images.push({
+              filename,
+              alt: img.alt,
+              width: img.width,
+              height: img.height
+            });
+          }
+        }
+      }
+      
+      // Download videos
+      for (let i = 0; i < mediaUrls.videos.length; i++) {
+        const video = mediaUrls.videos[i];
+        if (video.url) {
+          const filename = `${post.id}-video-${i + 1}.mp4`;
+          const success = await this.downloadMedia(video.url, filename, 'video');
+          if (success) {
+            mediaFiles.videos.push({
+              filename,
+              type: video.type,
+              width: video.width,
+              height: video.height
+            });
+          }
+        }
+      }
+      
+      return mediaFiles;
+    } catch (error) {
+      console.error(`❌ Error downloading media for post ${post.id}:`, error.message);
+      return { images: [], videos: [] };
     }
   }
 }
-Options:
-  --clean-existing     Remove all existing Instagram products before syncing
-  --username=USER      Instagram username for private pages
-  --password=PASS      Instagram password for private pages
 
-🔄 SYNC BEHAVIOR:
-  • Loads ALL posts from the Instagram page (scrolls to bottom)
-  • Only creates products for NEW posts (avoids duplicates)
-  • Skips posts that already have products
-  • Perfect for keeping your CMS in sync with Instagram
-
-Features:
-  ✅ Downloads profile picture as site logo
-  ✅ Creates CMS-compatible product entries for ALL page posts
-  ✅ Smart sync - only processes new posts
-  ✅ Organizes images in /img/ folder (CMS media library)
-  ✅ Supports private Instagram accounts with login
-  ✅ Compatible with Decap CMS admin interface
-  ✅ 🆕 Automatic modal/captcha detection and pause
-  ✅ 🆕 Handles verification codes and security challenges
-  ✅ 🆕 Smart wait for manual intervention when needed
-  ✅ 🆕 Complete page sync (all posts → all products)
-    `);
-    process.exit(1);
-  }
-
-  const instagramUrl = args[0];
-  const options = {};
-  const credentials = {};
-  
-  // Parse options
-  args.slice(1).forEach((arg) => {
-    if (arg === "--clean-existing") {
-      options.cleanExisting = true;
-    }
-    if (arg.startsWith("--username=")) {
-      credentials.username = arg.split("=")[1];
-    }
-    if (arg.startsWith("--password=")) {
-      credentials.password = arg.split("=")[1];
-    }
-  });
-
-  // Create scraper with credentials if provided
-  const scraper = credentials.username && credentials.password 
-    ? new InstagramScraper(credentials)
-    : new InstagramScraper();
-  
-  scraper.scrapeAndCreateProducts(instagramUrl, options)
-    .then(results => {
-      console.log("\n🎉 Scraping completed successfully!");
-      console.log(`📊 Total: ${results.total}, Success: ${results.successful}, Failed: ${results.failed}`);
-      console.log("🔗 Access your CMS admin panel to manage the new products");
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error("\n💥 Scraping failed:", error);
-      process.exit(1);
-    });
-}
+module.exports = InstagramScraper;

@@ -1,6 +1,11 @@
+# For production - comment out these lines when developing locally
+# backend:
+#   name: git-gateway
+#   branch: main
+# For local development - uncomment the line below and comment out the git-gateway backend above
 backend:
-  name: git-gateway
-  branch: main
+  name: test-repo
+local_backend: true
 media_folder: "site/static/img" # Folder where user uploaded files should go
 public_folder: "img"
 collections: # A list of collections the CMS should be able to edit

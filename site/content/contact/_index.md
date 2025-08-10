@@ -1,6 +1,6 @@
 ---
 title: "تماس با ما"
-logo: "/img/logo.svg"
+logo: "/img/products/6_side_jewelry-profile.jpg"
 contact_entries:
   - heading: آدرس
     text: "تهران، خیابان ولیعصر، نرسیده به پارک ملت، پلاک ۱۲۳۴"

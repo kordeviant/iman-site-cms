@@ -10,7 +10,7 @@
  */
 
 const readline = require('readline');
-const {InstagramScraper} = require("./instagram-scraper");
+const InstagramScraper = require("./instagram-scraper");
 
 const rl = readline.createInterface({
   input: process.stdin,
