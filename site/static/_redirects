@@ -1,5 +1,0 @@
-# Redirect all 404 to the home page for SPA behavior
-/* /index.html 200
-
-# Admin routes
-/admin/* /admin/index.html 200

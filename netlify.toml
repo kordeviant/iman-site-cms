@@ -6,11 +6,11 @@
   HUGO_VERSION = "0.110.0"
 
 [build]
-  command = "yarn build:webpack && cd site && hugo -d ../../dist -v"
+  command = "yarn build"
   publish = "dist"
 
 [context.deploy-preview]
-  command = "yarn build:webpack && cd site && hugo -d ../../dist -v -D -F"
+  command = "yarn build:preview"
 
 [dev]
   framework = "hugo"
