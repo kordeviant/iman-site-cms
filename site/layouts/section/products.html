@@ -1,35 +1,26 @@
 {{ define "main" }}
 
-{{ partial "jumbotron" (dict "imageUrl" .Params.image "title" .Title) }}
-
-{{ partial "4-up" .Params.intro }}
-
 <!-- Products List Section -->
-<div class="bg-grey-1 pv4">
-  <div class="ph3 mw7 center">
-    <h2 class="f2 b lh-title mb3">Our Products</h2>
-    <div class="flex-ns flex-wrap mhn2-ns">
+<div class="bg-white pv4">
+  <div class="ph3 mw8 center">
+    <h1 class="f1 b lh-title mb4 tc">مجموعه محصولات</h1>
+    <div class="flex-ns flex-wrap mhn1-ns">
       {{ range (where .Site.Pages "Section" "products").ByParam "date" }}
         {{ if ne .File.LogicalName "_index.md" }}
-        <div class="w-33-ns ph2 mb4">
-          <div class="bg-white br2 pa3 h-100">
+        <div class="w-25-ns ph1 mb2">
+          <div class="bg-white br2 shadow-2 overflow-hidden h-100">
             {{ if .Params.image }}
-            <img src="{{ .Params.image }}" alt="{{ .Title }}" class="w-100 db mb3 br2" style="height: 200px; object-fit: cover;">
+            <div class="relative">
+              <img src="{{ .Params.image }}" alt="{{ .Title }}" class="w-100 db" style="height: 200px; object-fit: cover;">
+              {{ if .Params.price }}
+              <div class="absolute bottom-0 right-0 bg-black-80 white pa2 f6 b">{{ .Params.price }}</div>
+              {{ end }}
+            </div>
             {{ end }}
-            <h3 class="f4 b lh-title mb2">{{ .Title }}</h3>
-            <p class="f6 lh-copy mb2" style="display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; max-height: 6em; min-height: 4em;">{{ .Params.description | truncate 300 }}</p>
-            {{ if .Params.price }}
-            <p class="f3 primary b mb2">${{ .Params.price }}</p>
-            {{ end }}
-            {{ if .Params.category }}
-            <span class="f6 link dim br2 ph2 pv1 mb2 dib white bg-primary">{{ .Params.category }}</span>
-            {{ end }}
-            {{ if not .Params.in_stock }}
-            <span class="f6 br2 ph2 pv1 mb2 dib white bg-gray">Out of Stock</span>
-            {{ else }}
-            <span class="f6 br2 ph2 pv1 mb2 dib white bg-green">In Stock</span>
-            {{ end }}
-            <a href="{{ .RelPermalink }}" class="db f6 link dim br2 ph3 pv2 mb2 dib white bg-primary tc no-underline">View Details</a>
+            <div class="pa2">
+              <p class="f7 lh-copy ma0 gray" style="display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; max-height: 3.6em; font-size: 0.75rem;">{{ .Params.description | truncate 150 }}</p>
+              <a href="{{ .RelPermalink }}" class="db f7 link dim br2 ph2 pv1 mt2 dib white bg-dark-gray tc no-underline">مشاهده</a>
+            </div>
           </div>
         </div>
         {{ end }}
@@ -37,28 +28,5 @@
     </div>
   </div>
 </div>
-
-{{ with .Params.main }}
-<div class="mw7 center">
-  <div class="mw6 ph3 mb3">
-    <h3 class="f3 b lh-title mb2">{{ .heading }}</h3>
-    <p>{{ .description }}</p>
-  </div>
-</div>
-
-<!-- Image grid -->
-{{ partial "image-grid" . }}
-{{ end }}
-
-<div class="pb4">
-  {{ range .Params.testimonials }}
-    {{ partial "blockquote" . }}
-  {{ end }}
-</div>
-
-<!-- Full-width image -->
-<img src="{{ .Params.full_image }}" alt="" class="db w-100">
-
-{{ partial "table" .Params.pricing }}
 
 {{ end }}
