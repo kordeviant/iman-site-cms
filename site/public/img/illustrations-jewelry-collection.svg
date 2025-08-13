@@ -1,0 +1,28 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" fill="#f8f9fa"/>
+  
+  <!-- Ring -->
+  <circle cx="80" cy="80" r="25" fill="none" stroke="#ffd700" stroke-width="4"/>
+  <circle cx="80" cy="80" r="8" fill="#ff6b6b"/>
+  
+  <!-- Necklace -->
+  <path d="M150 60 Q190 80 150 100 Q110 80 150 60" fill="none" stroke="#ffd700" stroke-width="3"/>
+  <circle cx="150" cy="80" r="6" fill="#4ecdc4"/>
+  
+  <!-- Earrings -->
+  <circle cx="60" cy="150" r="8" fill="#ffd700"/>
+  <rect x="56" y="160" width="8" height="15" fill="#ff6b6b"/>
+  
+  <circle cx="90" cy="150" r="8" fill="#ffd700"/>
+  <rect x="86" y="160" width="8" height="15" fill="#ff6b6b"/>
+  
+  <!-- Bracelet -->
+  <ellipse cx="180" cy="160" rx="30" ry="15" fill="none" stroke="#ffd700" stroke-width="4"/>
+  <circle cx="165" cy="160" r="4" fill="#4ecdc4"/>
+  <circle cx="180" cy="160" r="4" fill="#ff6b6b"/>
+  <circle cx="195" cy="160" r="4" fill="#4ecdc4"/>
+  
+  <text x="128" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">
+    مجموعه جواهرات
+  </text>
+</svg>
