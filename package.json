@@ -23,9 +23,7 @@
     "build:webpack": "cross-env NODE_ENV=production webpack --config webpack.prod.js",
     "cypress:open": "cypress open --e2e",
     "cypress:run": "cypress run --e2e",
-    "scrape:interactive": "node scripts/interactive.js",
-    "scrape:url": "node scripts/interactive.js",
-    "scrape:clear-session": "node scripts/interactive.js --clear",
+    "scrape:instagram": "node scripts/instagram-scraper.js",
     "replace:jewelry-images": "node scripts/replace-jewelry-images.js"
   },
   "author": "",
