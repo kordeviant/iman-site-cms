@@ -1,86 +1,54 @@
-/* eslint-env node, es2020 */
-"use strict";
+// processPosts.js
+import { discoverVisiblePosts } from "./linkDiscovery.js";
+import { openClickAndScrapeModal } from "./modalScraper.js";
+import { sleep, scrollIntoViewIfNeeded } from "./utils.js";
 
-import { modalScraper, scrollAndWait } from "./modalScraper.js";
-const { discoverLinks } = require("./linkDiscovery");
-const { downloadPostMedia } = require("./mediaDownloader");
-const { ensureDir, MEDIA_ROOT } = require("./utils");
+export async function processPosts(page) {
+  const seen = new Set();
+  let processed = 0;
+  const gridSelector = 'article a[href*="/p/"], article a[href*="/reel/"]';
+  let consecutiveNoNew = 0;
 
-const INCLUDE_REELS = true;
-const MAX_EMPTY_SCROLLS = 3;
+  while (true) {
+    const items = await discoverVisiblePosts(page, { includeReels: true });
+    const allFresh = items.filter(item => !seen.has(item.key));
 
-/**
- * Discover post URLs by scrolling the feed
- */
-async function collectPostUrls(
-  page,
-  {
-    max = 20,
-    scrollBatches = 6,
-    pauseMs = 1200,
-    anchorSelector = 'a[href*="/p/"], a[href*="/reel/"], a[href*="/tv/"]',
-  } = {}
-) {
-  const urls = new Set();
-
-  const collect = async () => {
-    const found = await page.evaluate((sel) => {
-      return Array.from(document.querySelectorAll(sel))
-        .map((a) => a.href)
-        .filter(Boolean);
-    }, anchorSelector);
-    found.forEach((u) => urls.add(u));
-  };
-
-  await collect();
-
-  for (let i = 0; urls.size < max && i < scrollBatches; i++) {
-    await scrollAndWait(page, 1, pauseMs);
-    await collect();
-  }
-
-  return Array.from(urls).slice(0, max);
-}
-
-export async function processPostsSamePage(
-  page,
-  {
-    max = 20,
-    outputDir = "./media",
-    scrollBatches = 6,
-    pauseMs = 1200,
-    anchorSelector = 'a[href*="/p/"], a[href*="/reel/"], a[href*="/tv/"]',
-  } = {}
-) {
-  const urls = await collectPostUrls(page, {
-    max,
-    scrollBatches,
-    pauseMs,
-    anchorSelector,
-  });
-
-  for (let i = 0; i < urls.length; i++) {
-    const url = urls[i];
-
-    // Create a fresh selector each loop to avoid stale handles
-    const safeHref = url.replace(/"/g, '\\"');
-    const sel = `${anchorSelector
-      .split(",")
-      .map((s) => `${s.trim()}[href="${safeHref}"]`)
-      .join(", ")}`;
-
-    try {
-      // Re-find the element (DOM changes after scrolling)
-      await page.waitForSelector(sel, { timeout: 4000 });
-      await modalScraper(page, sel, outputDir);
-      console.log(`✅ [${i + 1}/${urls.length}] Done: ${url}`);
-    } catch (err) {
-      console.warn(
-        `⚠️  [${i + 1}/${urls.length}] Failed: ${url}\n   ${err.message}`
-      );
+    // Process only fresh photo posts
+    for (const item of allFresh.filter(i => !i.url.includes("/reel/"))) {
+      seen.add(item.key);
+      console.log(`📸 START ${item.url}`);
+      try {
+        await scrollIntoViewIfNeeded(page, item.selector);
+        await openClickAndScrapeModal(page, {
+          cellSelector: item.selector,
+          slug: item.key,
+        });
+        console.log(`✅ DONE ${item.url}`);
+      } catch (e) {
+        console.error(`❌ Error on ${item.url}: ${e.message}`);
+      }
+      processed++;
     }
-    await page.waitForTimeout(350);
-  }
-}
 
-module.exports = { processPosts };
+    // Mark all fresh items (photos or reels) as seen so scroll logic stays alive
+    for (const f of allFresh) seen.add(f.key);
+
+    if (allFresh.length === 0) {
+      consecutiveNoNew++;
+      if (consecutiveNoNew >= 3) {
+        console.log("ℹ️ No new posts after multiple scrolls — stopping.");
+        break;
+      }
+    } else {
+      consecutiveNoNew = 0;
+    }
+
+    // Always scroll to try to reveal more
+    await page.evaluate(() =>
+      window.scrollBy(0, Math.round(window.innerHeight * 0.9))
+    );
+    await sleep(400);
+  }
+
+  console.log(`🎉 Done. Scraped ${processed} photo post(s).`);
+}

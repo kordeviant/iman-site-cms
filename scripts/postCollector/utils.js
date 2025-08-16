@@ -1,92 +1,63 @@
-/* eslint-env node, es2020 */
-'use strict';
+// utils.js
 
-const fs = require('fs');
-const path = require('path');
+export async function waitForMediaReadyInModal(page, timeout = 15000) {
+  await page.waitForFunction(() => {
+    const scope = document.querySelector('div[role="dialog"] article');
+    if (!scope) return false;
+    const imgs = [...scope.querySelectorAll('img')];
+    const vids = [...scope.querySelectorAll('video')];
+    if (imgs.length + vids.length === 0) return false;
+    return true;
+  }, { timeout });
 
-const MODAL_SELECTOR = 'div[role="dialog"]';
-const NEXT_BUTTON_SELECTORS = [
-  `${MODAL_SELECTOR} button[aria-label="Next"]`,
-  `${MODAL_SELECTOR} div[role="button"][aria-label="Next"]`,
-];
-const CLOSE_BUTTON_SELECTORS = [
-  `${MODAL_SELECTOR} button[aria-label="Close"]`,
-  `${MODAL_SELECTOR} svg[aria-label="Close"]`,
-  `${MODAL_SELECTOR} div[role="button"][aria-label="Close"]`,
-];
-const MODAL_TIMEOUT = 8000;
-const MODAL_IDLE = 400;
-const SLIDE_WAIT = 700;
-const MAX_SLIDES_PER_POST = 20;
+  // Ensure decode/ready
+  await page.evaluate(async () => {
+    const scope = document.querySelector('div[role="dialog"] article');
+    const els = [...scope.querySelectorAll('img, video')];
+    await Promise.all(els.map(el => {
+      if (el.tagName === 'IMG') {
+        if (el.complete) return;
+        return new Promise(res => {
+          el.addEventListener('load', res, { once: true });
+          el.addEventListener('error', res, { once: true });
+        });
+      }
+      if (el.tagName === 'VIDEO') {
+        if (el.readyState >= 2) return;
+        return new Promise(res => {
+          const done = () => res();
+          el.addEventListener('loadeddata', done, { once: true });
+          el.addEventListener('error', done, { once: true });
+        });
+      }
+    }));
+  });
+}
 
-const MEDIA_ROOT = path.resolve(process.cwd(), 'media');
-
-function ensureDir(d) { fs.mkdirSync(d, { recursive: true }); }
-function sanitizeSegment(seg) { return seg.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').slice(0, 150); }
-function keyToFolderName({ type, code }) { return `${type}_${code}`; }
-
-function guessExtFromUrl(u) {
-  try {
-    const { pathname } = new URL(u);
-    const m = pathname.match(/\.([a-zA-Z0-9]{2,5})$/);
-    if (!m) return null;
-    const ext = m[1].toLowerCase();
-    return ext === 'jpeg' ? 'jpg' : ext;
-  } catch {
-    return null;
+// Observe grid and wait for more items to render after scrolling
+export async function waitForNewGridItems(page, gridAnchorSelector, prevCount, minDelta = 6, timeout = 8000) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    const count = await page.evaluate((sel) => {
+      return document.querySelectorAll(sel).length;
+    }, gridAnchorSelector);
+    if (count >= prevCount + minDelta) return count;
+    await sleep(150);
   }
+  return prevCount; // no change detected within timeout
 }
 
-function extFromContentType(ct) {
-  if (!ct) return null;
-  const t = ct.split(';')[0].trim().toLowerCase();
-  if (t.includes('jpeg')) return 'jpg';
-  if (t.includes('png')) return 'png';
-  if (t.includes('webp')) return 'webp';
-  if (t.includes('gif')) return 'gif';
-  if (t.includes('mp4')) return 'mp4';
-  return null;
+export async function scrollIntoViewIfNeeded(page, selector) {
+  const handle = await page.$(selector);
+  if (!handle) return;
+  await handle.evaluate(el => el.scrollIntoView({ block: 'center' }));
+}
+export const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+export async function waitForModalOpen(page, timeout = 10000) {
+  await page.waitForSelector('article[role="presentation"]', { timeout });
 }
 
-function parsePostUrl(rawUrl) {
-  try {
-    const u = new URL(rawUrl);
-    const m = u.pathname.match(/\/(p|reel)\/([A-Za-z0-9_-]+)/);
-    if (!m) return null;
-    const type = m[1], code = m[2];
-    const key = `${type}/${code}`;
-    const canonical = `${u.origin}/${type}/${code}/`;
-    const selector = `a[href*='/${type}/${code}']`;
-    return { key, canonical, selector, type, code };
-  } catch {
-    return null;
-  }
+export async function waitForModalClose(page, timeout = 10000) {
+  await page.waitForSelector('div[role="dialog"]', { hidden: true, timeout });
 }
-
-/**
- * Small sleep helper to keep behavior consistent across modules.
- */
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-module.exports = {
-  // constants
-  MODAL_SELECTOR,
-  NEXT_BUTTON_SELECTORS,
-  CLOSE_BUTTON_SELECTORS,
-  MODAL_TIMEOUT,
-  MODAL_IDLE,
-  SLIDE_WAIT,
-  MAX_SLIDES_PER_POST,
-  MEDIA_ROOT,
-
-  // helpers
-  ensureDir,
-  sanitizeSegment,
-  keyToFolderName,
-  guessExtFromUrl,
-  extFromContentType,
-  parsePostUrl,
-  sleep,
-};

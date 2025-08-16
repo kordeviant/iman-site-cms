@@ -1,12 +1,10 @@
-/* eslint-env node, es2020 */
-
-const fs = require("fs").promises;
-const path = require("path");
+import fs from "fs/promises";
+import path from "path";
 
 /**
  * Save image from URL to specified path
  */
-async function saveImageFromUrl(browser, imageUrl, savePath) {
+export async function saveImageFromUrl(browser, imageUrl, savePath) {
   console.log("📥 Fetching image...");
 
   try {
@@ -43,7 +41,7 @@ async function saveImageFromUrl(browser, imageUrl, savePath) {
 /**
  * Save buffer to file with directory creation
  */
-async function saveBufferToFile(buffer, filePath) {
+export async function saveBufferToFile(buffer, filePath) {
   const saveDir = path.dirname(filePath);
 
   console.log("📁 Creating directory:", saveDir);
@@ -62,7 +60,7 @@ async function saveBufferToFile(buffer, filePath) {
 /**
  * Take screenshot of element as fallback
  */
-async function screenshotElement(page, selector, savePath) {
+export async function screenshotElement(page, selector, savePath) {
   console.log("📸 Taking screenshot as fallback...");
 
   const element = await page.$(selector);
@@ -88,9 +86,3 @@ async function screenshotElement(page, selector, savePath) {
 
   console.log(`✅ Screenshot saved to: ${savePath}`);
 }
-
-module.exports = {
-  saveImageFromUrl,
-  saveBufferToFile,
-  screenshotElement,
-};

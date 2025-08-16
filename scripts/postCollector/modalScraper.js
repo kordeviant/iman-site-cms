@@ -1,125 +1,52 @@
-// modalScraper.js
-import fs from "fs";
-import path from "path";
-import { spawn } from "child_process";
+import { sleep, waitForModalOpen, waitForModalClose } from './utils.js';
+import { saveImageToFolder } from './mediaDownloader.js';
 
-/**
- * Scrolls the page down a number of times with a delay
- */
-async function scrollAndWait(page, scrollCount = 3, delayMs = 1500) {
-  for (let i = 0; i < scrollCount; i++) {
-    await page.evaluate(() => window.scrollBy(0, window.innerHeight));
-    await page.waitForTimeout(delayMs);
-  }
-}
+export async function openClickAndScrapeModal(page, { cellSelector, slug }) {
+  await page.click(cellSelector, { delay: 10 });
+  await waitForModalOpen(page);
 
-/**
- * Save a blob or buffer to disk with a given base name + extension
- */
-function saveBuffer(destBase, ext, bytes) {
-  const destPath = `${destBase}.${ext}`;
-  if (!fs.existsSync(destPath)) {
-    fs.writeFileSync(destPath, Buffer.from(bytes));
-    console.log(
-      `   💾 Saved ${path.basename(destPath)} (${bytes.length} bytes)`
-    );
-  } else {
-    console.log(`   ⏭️ Skipped existing ${path.basename(destPath)}`);
-  }
-}
+  let index = 1;
+  const downloaded = new Set();
 
-/**
- * Main scraper — accepts either a selector or a direct URL
- */
-export async function modalScraper(page, target, outputDir) {
-  // Handle target as URL or selector
-  if (typeof target === "string" && target.startsWith("http")) {
-    await page.goto(target, { waitUntil: "networkidle2" });
-  } else if (typeof target === "string") {
-    await page.click(target);
-  } else {
-    throw new Error("Target must be a selector string or a URL string");
-  }
-
-  // Wait for modal video
-  await page.waitForSelector('div[role="dialog"] video');
-
-  // Intercept manifest URLs
-  let manifestUrl = null;
-  const respHandler = (res) => {
-    const url = res.url();
-    if ((url.endsWith(".m3u8") || url.endsWith(".mpd")) && !manifestUrl) {
-      manifestUrl = url;
-    }
-  };
-  page.on("response", respHandler);
-
-  const vidHandle = await page.$('div[role="dialog"] video');
-
-  // Ensure playback starts
-  await page.evaluate((vid) => {
-    if (vid && vid.paused) vid.play().catch(() => {});
-  }, vidHandle);
-
-  // Wait until video ended (fully buffered)
-  await page.evaluate(
-    (vid) =>
-      new Promise((res) => {
-        vid.onended = res;
-      }),
-    vidHandle
-  );
-
-  // Try direct blob or progressive URL fetch
-  const blobData = await page.evaluate(async (vid) => {
-    if (!vid) return null;
-    const src = vid.currentSrc || vid.src;
-    if (!src) return null;
-
-    const grab = async (link) => {
-      const resp = await fetch(link);
-      const ab = await resp.arrayBuffer();
-      return { bytes: Array.from(new Uint8Array(ab)), type: resp.type || "" };
-    };
-
-    if (src.startsWith("blob:")) return await grab(src);
-    if (!src.includes("bytestart") && !src.includes("byteend"))
-      return await grab(src);
-    return null;
-  }, vidHandle);
-
-  // Output path
-  fs.mkdirSync(outputDir, { recursive: true });
-  const baseName = `video_${Date.now()}`;
-  const destBase = path.join(outputDir, baseName);
-
-  if (blobData) {
-    const ext = blobData.type.includes("mp4") ? "mp4" : "bin";
-    saveBuffer(destBase, ext, blobData.bytes);
-  } else if (manifestUrl) {
-    console.log(`🎯 Found manifest: ${manifestUrl}`);
-    await new Promise((resolve, reject) => {
-      const ff = spawn(
-        "ffmpeg",
-        ["-i", manifestUrl, "-c", "copy", `${destBase}.mp4`],
-        { stdio: "inherit" }
-      );
-      ff.on("close", (code) =>
-        code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}`))
-      );
+  while (true) {
+    // ✅ Get current slide images
+    const srcList = await page.evaluate(() => {
+      const imgs = Array.from(document.querySelectorAll(
+        'article[role="presentation"] div[role="presentation"]>div>ul li img'
+      ));
+      return imgs.map(img => img.currentSrc || img.src).filter(Boolean);
     });
-    console.log(`✅ Saved via ffmpeg: ${destBase}.mp4`);
-  } else {
-    console.warn("❌ No usable blob or manifest found");
+
+    for (const src of srcList) {
+      if (!downloaded.has(src)) {
+        await saveImageToFolder(page, slug, src, index);
+        downloaded.add(src);
+        index++;
+      }
+    }
+
+    // ⏭ Try to click "Next"
+    const nextBtn = await page.$('article[role="presentation"] button[aria-label="Next"]');
+    if (!nextBtn) break;
+
+    await nextBtn.click();
+    await sleep(300); // buffer for DOM update
   }
 
-  // Remove listener and close modal
-  page.off("response", respHandler);
-  await page.keyboard.press("Escape");
+  // ❌ Close modal (robust)
+  try {
+    const closeBtn = await page.$('div[role="dialog"] [aria-label="Close"]');
+    if (closeBtn) {
+      await closeBtn.click();
+      await waitForModalClose(page);
+    } else {
+      // Fallback: press Escape
+      await page.keyboard.press('Escape');
+      await sleep(500);
+    }
+  } catch (err) {
+    console.warn('⚠️ Modal close failed, trying fallback...');
+    await page.keyboard.press('Escape');
+    await sleep(500);
+  }
 }
-
-// Optional: re-export with legacy name for compatibility
-export const clickPostAndScrape = modalScraper;
-
-// Export scroll helper if other modules want it
-export { scrollAndWait };

@@ -45,7 +45,7 @@ async function handleCookieModal(page) {
 /**
  * Navigate to Instagram profile
  */
-async function navigateToProfile(page, instagramUrl) {
+export async function navigateToProfile(page, instagramUrl) {
   console.log(`🎯 Navigating to: ${instagramUrl}`);
 
   await page.goto(instagramUrl, {
@@ -60,7 +60,7 @@ async function navigateToProfile(page, instagramUrl) {
 /**
  * Find profile picture URL on the page
  */
-async function findProfilePictureUrl(page) {
+export async function findProfilePictureUrl(page) {
   console.log("📸 Looking for profile picture...");
 
   const profilePicUrl = await page.evaluate(() => {
@@ -92,10 +92,3 @@ async function findProfilePictureUrl(page) {
   console.log("✅ Found profile picture URL");
   return profilePicUrl;
 }
-
-module.exports = {
-  sleep,
-  handleCookieModal,
-  navigateToProfile,
-  findProfilePictureUrl,
-};

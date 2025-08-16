@@ -4,6 +4,7 @@
   "description": "Hugo template with Decap CMS ",
   "repository": "decaporg/one-click-hugo-cms",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "lint": "eslint src cypress",
     "start": "run-p start:**",

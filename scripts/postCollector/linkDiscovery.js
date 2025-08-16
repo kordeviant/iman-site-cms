@@ -1,33 +1,20 @@
-/* eslint-env node, es2020 */
-"use strict";
+// linkDiscovery.js
+export async function discoverVisiblePosts(page, { includeReels = true } = {}) {
+  const selector = 'a._a6hd[href*="/p/"], a._a6hd[href*="/reel/"]';
 
-const { parsePostUrl } = require("./utils");
+  return await page.evaluate((selector, includeReels) => {
+    const anchors = Array.from(document.querySelectorAll(selector))
+      .filter(a => includeReels || !a.href.includes('/reel/'));
 
-async function discoverLinks(
-  page,
-  store,
-  queue,
-  { includeReels } = { includeReels: true }
-) {
-  const selectorParts = ["a[href*='/p/']"];
-  if (includeReels) selectorParts.push("a[href*='/reel/']");
-  const selector = selectorParts.join(",");
-
-  const hrefs = await page.$$eval(selector, (els) =>
-    Array.from(new Set(els.map((el) => el.href)))
-  );
-
-  let added = 0;
-  for (const href of hrefs) {
-    const parsed = parsePostUrl(href);
-    if (!parsed) continue;
-    if (!store.has(parsed.key)) {
-      store.set(parsed.key, parsed);
-      queue.push(parsed.key);
-      added++;
-    }
-  }
-  return added;
+    return anchors.map((a, idx) => {
+      const url = a.href.split('?')[0];
+      const slug = url.split('/').filter(Boolean).pop();
+      a.dataset.scrapeId = slug; // tag for click targeting
+      return {
+        key: slug,
+        url,
+        selector: `a[data-scrape-id="${slug}"]`,
+      };
+    });
+  }, selector, includeReels);
 }
-
-module.exports = { discoverLinks };

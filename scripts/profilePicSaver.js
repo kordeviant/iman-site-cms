@@ -1,13 +1,13 @@
 /* eslint-env node, es2020 */
 
-const path = require("path");
-const { findProfilePictureUrl } = require("./instagram");
-const { saveImageFromUrl } = require("./fileSaver");
+import path from "path";
+import {findProfilePictureUrl} from "./instagram.js";
+import {saveImageFromUrl} from "./fileSaver.js";
 
 /**
  * Save Instagram profile picture to site/static/img/logo.jpg
  */
-async function saveProfilePicture(browser, page) {
+export async function saveProfilePicture(browser, page) {
   const profilePicUrl = await findProfilePictureUrl(page);
   const savePath = path.join(
     process.cwd(),
@@ -22,7 +22,3 @@ async function saveProfilePicture(browser, page) {
 
   return savePath;
 }
-
-module.exports = {
-  saveProfilePicture,
-};

@@ -5,11 +5,11 @@
  * Instagram Profile Picture Scraper - Main Script
  */
 
-const { createBrowser, createPage, closeBrowser } = require("./browser");
-const { navigateToProfile } = require("./instagram");
-const { saveProfilePicture } = require("./profilePicSaver");
-const { processPosts } = require("./postCollector");
-const { validateUrl } = require("./utils");
+import { createBrowser, createPage, closeBrowser } from "./browser.js";
+import { navigateToProfile } from "./instagram.js";
+import { saveProfilePicture } from "./profilePicSaver.js";
+import { processPosts } from "./postCollector/index.js";
+import { validateUrl } from "./utils.js";
 
 /**
  * Main execution
@@ -52,6 +52,4 @@ async function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
-  main();
-}
+main();

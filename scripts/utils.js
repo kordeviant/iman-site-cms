@@ -3,7 +3,7 @@
 /**
  * Validate Instagram URL format
  */
-function validateUrl(url) {
+export function validateUrl(url) {
   if (!url) {
     throw new Error("Please provide an Instagram profile URL");
   }
@@ -16,7 +16,3 @@ function validateUrl(url) {
 
   return true;
 }
-
-module.exports = {
-  validateUrl,
-};
