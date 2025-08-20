@@ -11,12 +11,12 @@ export async function processPosts(page) {
 
   while (true) {
     const items = await discoverVisiblePosts(page, { includeReels: true });
-    const allFresh = items.filter(item => !seen.has(item.key));
+    const allFresh = items.filter((item) => !seen.has(item.key));
 
     // Process only fresh photo posts
-    for (const item of allFresh.filter(i => !i.url.includes("/reel/"))) {
+    for (const item of allFresh) {
       seen.add(item.key);
-      console.log(`📸 START ${item.url}`);
+      console.log(`▶️ START ${item.url}`);
       try {
         await scrollIntoViewIfNeeded(page, item.selector);
         await openClickAndScrapeModal(page, {
