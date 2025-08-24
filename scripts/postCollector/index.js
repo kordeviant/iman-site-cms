@@ -3,7 +3,7 @@ import { discoverVisiblePosts } from "./linkDiscovery.js";
 import { openClickAndScrapeModal } from "./modalScraper.js";
 import { sleep, scrollIntoViewIfNeeded } from "./utils.js";
 
-export async function processPosts(page) {
+export async function processPosts(page, options = { media: true, metadata: false }) {
   const seen = new Set();
   let processed = 0;
   const gridSelector = 'article a[href*="/p/"], article a[href*="/reel/"]';
@@ -17,16 +17,17 @@ export async function processPosts(page) {
     for (const item of allFresh) {
       seen.add(item.key);
       console.log(`▶️ START ${item.url}`);
-      try {
-        await scrollIntoViewIfNeeded(page, item.selector);
-        await openClickAndScrapeModal(page, {
-          cellSelector: item.selector,
-          slug: item.key,
-        });
-        console.log(`✅ DONE ${item.url}`);
-      } catch (e) {
-        console.error(`❌ Error on ${item.url}: ${e.message}`);
-      }
+        try {
+          await scrollIntoViewIfNeeded(page, item.selector);
+          await openClickAndScrapeModal(page, {
+            cellSelector: item.selector,
+            slug: item.key,
+            options,
+          });
+          console.log(`✅ DONE ${item.url}`);
+        } catch (e) {
+          console.error(`❌ Error on ${item.url}: ${e.message}`);
+        }
       processed++;
     }
 

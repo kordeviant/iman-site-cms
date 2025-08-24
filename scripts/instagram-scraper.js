@@ -15,7 +15,19 @@ import { validateUrl } from "./utils.js";
  * Main execution
  */
 async function main() {
-  const instagramUrl = process.argv[2];
+  const argv = process.argv.slice(2);
+  const instagramUrl = argv[0];
+  const flags = argv.slice(1);
+
+  // Flags: --media, --metadata, --both
+  // Default: media enabled, metadata disabled
+  const options = {
+    media:
+      flags.includes("--media") ||
+      flags.includes("--both") ||
+      flags.length === 0,
+    metadata: flags.includes("--metadata") || flags.includes("--both"),
+  };
   let browser;
 
   try {
@@ -35,8 +47,11 @@ async function main() {
     console.log("💾 Saving profile picture...");
     await saveProfilePicture(browser, page);
 
-    // Process all posts
-    await processPosts(page);
+    // Process all posts (pass options to enable media and/or metadata)
+    console.log(
+      `⚙️ Options: media=${options.media}, metadata=${options.metadata}`
+    );
+    await processPosts(page, options);
 
     console.log("🎉 Scraping completed successfully!");
   } catch (error) {

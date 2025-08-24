@@ -59,13 +59,15 @@ export async function saveVideoToFolder(page, slug, src, index) {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const buffer = await resp.buffer();
 
-    const folder = path.join(BASE_DIR, slug);
-    await fsPromises.mkdir(folder, { recursive: true });
-    const filename = `media${index}.mp4`;
-    await fsPromises.writeFile(path.join(folder, filename), buffer);
-    console.log(`✅ Saved ${slug}/${filename}`);
+  const folder = path.join(BASE_DIR, slug);
+  await fsPromises.mkdir(folder, { recursive: true });
+  const filename = `video_${String(index).padStart(2, "0")}.mp4`;
+  await fsPromises.writeFile(path.join(folder, filename), buffer);
+  console.log(`✅ Saved ${slug}/${filename}`);
+  return filename;
   } catch (err) {
     console.warn(`⚠️ Video save failed for ${slug} [${src}]: ${err.message}`);
+  return null;
   }
 }
 
@@ -84,10 +86,11 @@ export async function saveImageToFolder(page, slug, src, index) {
   const buffer = Buffer.from(res.bytes);
   const ext = res.mime.includes("png") ? ".png" : ".jpg";
   const folder = path.join(BASE_DIR, slug);
-  const filename = `media${index}${ext}`;
+  const filename = `media${String(index).padStart(2, "0")}${ext}`;
   const fullPath = path.join(folder, filename);
 
   await fsPromises.mkdir(folder, { recursive: true });
   await fsPromises.writeFile(fullPath, buffer);
   console.log(`   ↳ saved ${slug}/${filename}`);
+  return filename;
 }

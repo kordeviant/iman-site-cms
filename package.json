@@ -25,7 +25,8 @@
     "cypress:open": "cypress open --e2e",
     "cypress:run": "cypress run --e2e",
     "scrape:instagram": "node scripts/instagram-scraper.js",
-    "replace:jewelry-images": "node scripts/replace-jewelry-images.js"
+  "replace:jewelry-images": "node scripts/replace-jewelry-images.js",
+  "copy:downloads-images": "node scripts/copy-downloads-images.cjs"
   },
   "author": "",
   "license": "MIT",

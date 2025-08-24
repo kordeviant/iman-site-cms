@@ -1,5 +1,9 @@
 import { sleep, waitForModalOpen, waitForModalClose } from "./utils.js";
-import { saveImageToFolder, stripByteRangeParams } from "./mediaDownloader.js";
+import {
+  saveImageToFolder,
+  stripByteRangeParams,
+  saveVideoToFolder,
+} from "./mediaDownloader.js";
 import path from "path";
 import fs from "fs";
 
@@ -51,13 +55,25 @@ async function getModalShortcode(page) {
   });
 }
 
-export async function openClickAndScrapeModal(page, { cellSelector, slug }) {
+export async function openClickAndScrapeModal(
+  page,
+  { cellSelector, slug, options = { media: true, metadata: false } }
+) {
   let index = 1;
   const folderPath = path.join(process.cwd(), "downloads", slug);
+  const metadata = {
+    slug,
+    items: [],
+    caption: null,
+    likes: null,
+    postUrl: null,
+  };
 
   // Open modal
   await page.click(cellSelector, { delay: 10 });
   await waitForModalOpen(page);
+  // postInfo may be populated from DOM evaluation inside the loop; declare outer so we can use after loop
+  let postInfo = null;
 
   while (true) {
     // Kill background noise: pause all non-modal videos
@@ -77,8 +93,36 @@ export async function openClickAndScrapeModal(page, { cellSelector, slug }) {
     });
 
     const shortcode = await getModalShortcode(page);
+    // Try to extract caption (ONLY using the selector you specified), like count and post URL from the modal DOM
+    postInfo = await page.evaluate(() => {
+      const dlg = document.querySelector('div[role="dialog"]');
+      const hrefEl = dlg ? dlg.querySelector('a[href*="/p/"], a[href*="/reel/"]') : null;
+      const postUrl = hrefEl ? hrefEl.href : (location.origin + location.pathname);
+
+      // Use only the selector provided by the user for caption extraction
+      const captionSel = 'div[role="dialog"] article div.html-div>div:nth-child(2) ul li:first-child';
+      const capEl = document.querySelector(captionSel);
+      const caption = capEl ? capEl.textContent.trim() : null;
+
+      function findLikes() {
+        const text = dlg ? dlg.innerText : document.body.innerText;
+        if (!text) return null;
+        // Try common patterns: "123 likes", "123 likes, 45 comments", "Liked by X and 123 others", or views
+        const m1 = text.match(/([0-9,\.]+)\s+likes?/i);
+        if (m1) return parseInt(m1[1].replace(/[,.]/g, ''), 10);
+        const m2 = text.match(/Liked by[\s\S]*?([0-9,\.]+)\s+others/i);
+        if (m2) return parseInt(m2[1].replace(/[,.]/g, ''), 10);
+        const m3 = text.match(/([0-9,\.]+)\s+views?/i);
+        if (m3) return parseInt(m3[1].replace(/[,.]/g, ''), 10);
+        return null;
+      }
+
+      return { postUrl, caption, like_count: findLikes() };
+    });
     const capturedMp4Urls = new Set();
     const graphqlVideoUrls = new Set();
+    let graphqlCaption = null;
+    let graphqlLikes = null;
 
     // Fallback network capture: scoped and filtered
     const onRequest = (req) => {
@@ -136,6 +180,31 @@ export async function openClickAndScrapeModal(page, { cellSelector, slug }) {
                 }
               });
             }
+
+            // Try to capture caption and like count from GraphQL node
+            try {
+              if (!graphqlCaption) {
+                const cap =
+                  node.edge_media_to_caption?.edges?.[0]?.node?.text ||
+                  node.caption ||
+                  node.title ||
+                  null;
+                if (cap && typeof cap === "string") graphqlCaption = cap;
+              }
+              if (!graphqlLikes) {
+                const likes =
+                  node.edge_media_preview_like?.count ||
+                  node.edge_media_preview_like ||
+                  node.edge_liked_by?.count ||
+                  node.likes?.count ||
+                  null;
+                if (
+                  typeof likes === "number" ||
+                  (typeof likes === "string" && /\d+/.test(likes))
+                )
+                  graphqlLikes = Number(likes);
+              }
+            } catch {}
           }
 
           // DFS
@@ -149,6 +218,51 @@ export async function openClickAndScrapeModal(page, { cellSelector, slug }) {
 
     page.on("request", onRequest);
     page.on("response", onResponse);
+
+    // Extract caption, likes and post URL from DOM when possible
+    try {
+      const domMeta = await page.evaluate(() => {
+        const sel = "article div.html-div ul>li:first-child";
+        const el = document.querySelector(sel);
+        const caption = el ? el.textContent.trim() : null;
+
+        // Try to determine likes text (varies by layout)
+        let likes = null;
+        // look for buttons/sections that contain the likes number
+        const likeSelectors = [
+          'article section a[href*="/liked_by/"]',
+          "article section span",
+          'article div[role="presentation"] section span',
+        ];
+        for (const s of likeSelectors) {
+          const n = document.querySelector(s);
+          if (n && /\d/.test(n.textContent)) {
+            const m = n.textContent.replace(/[^0-9]/g, "");
+            if (m) {
+              likes = Number(m);
+              break;
+            }
+          }
+        }
+
+        // Post URL: prefer canonical link inside modal or location
+        const dlg = document.querySelector('div[role="dialog"]');
+        let postUrl = null;
+        if (dlg) {
+          const a = dlg.querySelector('a[href*="/p/"] , a[href*="/reel/"]');
+          if (a) postUrl = a.href;
+        }
+        if (!postUrl) postUrl = location.href;
+
+        return { caption, likes, postUrl };
+      });
+
+      if (domMeta.caption && !metadata.caption)
+        metadata.caption = domMeta.caption;
+      if (domMeta.likes && !metadata.likes) metadata.likes = domMeta.likes;
+      if (domMeta.postUrl && !metadata.postUrl)
+        metadata.postUrl = domMeta.postUrl;
+    } catch (e) {}
 
     // Detect media on current slide
     const mediaList = await page.evaluate(() => {
@@ -166,7 +280,11 @@ export async function openClickAndScrapeModal(page, { cellSelector, slug }) {
 
     for (const media of mediaList) {
       if (media.type === "image") {
-        await saveImageToFolder(page, slug, media.src, index++);
+        let filename = null;
+        if (options.media)
+          filename = await saveImageToFolder(page, slug, media.src, index);
+        metadata.items.push({ type: "image", src: media.src, filename });
+        index++;
       } else if (media.type === "video") {
         // Nudge the modal video so requests fire
         await page.evaluate(() => {
@@ -190,13 +308,19 @@ export async function openClickAndScrapeModal(page, { cellSelector, slug }) {
         const finalUrl = preferred || fallback;
 
         if (finalUrl) {
-          const name = `video_${String(index++).padStart(2, "0")}.mp4`;
           console.log(`🎯 Chosen video for ${slug}: ${finalUrl}`);
-          await browserDownload(page, finalUrl, folderPath, name);
+          let filename = null;
+          if (options.media) {
+            // prefer saveVideoToFolder which uses node-fetch and saves reliably
+            filename = await saveVideoToFolder(page, slug, finalUrl, index);
+          }
+          metadata.items.push({ type: "video", src: finalUrl, filename });
+          index++;
         } else {
           console.log(
             "⚠️ No confidently associated video URL found for this slide."
           );
+          metadata.items.push({ type: "video", src: null, filename: null });
         }
       }
     }
@@ -204,6 +328,19 @@ export async function openClickAndScrapeModal(page, { cellSelector, slug }) {
     // Cleanup listeners for this slide
     page.off("request", onRequest);
     page.off("response", onResponse);
+
+    // If GraphQL provided metadata, prefer it when we don't have DOM results
+    if (!metadata.caption && graphqlCaption) metadata.caption = graphqlCaption;
+    if (!metadata.likes && graphqlLikes != null) metadata.likes = graphqlLikes;
+    // Ensure postUrl is set from shortcode when available
+    if (!metadata.postUrl && shortcode) {
+      const kind = /reel/i.test(
+        (await page.evaluate(() => location.pathname)) || ""
+      )
+        ? "reel"
+        : "p";
+      metadata.postUrl = `https://www.instagram.com/${kind}/${shortcode}/`;
+    }
 
     // Next slide or exit
     const nextBtn = await page.$(
@@ -222,5 +359,38 @@ export async function openClickAndScrapeModal(page, { cellSelector, slug }) {
   } else {
     await page.keyboard.press("Escape");
     await sleep(400);
+  }
+
+  // Merge post-level info into metadata (prefer DOM/GraphQL values we already populated)
+  if (postInfo) {
+    // primary camelCase fields
+    if (postInfo.postUrl) metadata.postUrl = postInfo.postUrl;
+    if (postInfo.caption) metadata.caption = postInfo.caption;
+    if (typeof postInfo.like_count === "number")
+      metadata.likes = postInfo.like_count;
+
+    // legacy keys for backward compatibility
+    metadata.post_url = metadata.postUrl || postInfo.postUrl || null;
+    metadata.like_count =
+      typeof metadata.likes === "number"
+        ? metadata.likes
+        : typeof postInfo.like_count === "number"
+        ? postInfo.like_count
+        : null;
+  }
+
+  if (options.metadata) {
+    try {
+      fs.mkdirSync(folderPath, { recursive: true });
+      fs.writeFileSync(
+        path.join(folderPath, "metadata.json"),
+        JSON.stringify(metadata, null, 2)
+      );
+      console.log(
+        `🗂 Wrote metadata → ${path.join(folderPath, "metadata.json")}`
+      );
+    } catch (err) {
+      console.warn(`⚠️ Failed to write metadata for ${slug}: ${err.message}`);
+    }
   }
 }
