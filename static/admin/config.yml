@@ -4,7 +4,8 @@
 #   branch: main
 # For local development - uncomment the line below and comment out the git-gateway backend above
 backend:
-  name: test-repo
+  name: git-gateway
+  branch: main
 local_backend: true
 media_folder: "static/img" # Folder where user uploaded files should go
 public_folder: "img"
