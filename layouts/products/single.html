@@ -1,0 +1,26 @@
+{{ define "main" }}
+<article class="product-detail">
+  <h1>{{ .Title }}</h1>
+  {{ with .Params.image }}
+    <img src="{{ . }}" alt="{{ $.Title }}">
+  {{ end }}
+
+  {{ if .Params.gallery }}
+    <div class="product-gallery">
+      {{ range .Params.gallery }}
+        {{ if eq .type "video" }}
+          <video controls>
+            <source src="{{ .src }}" type="video/mp4">
+          </video>
+        {{ else }}
+          <img src="{{ .src }}" alt="">
+        {{ end }}
+      {{ end }}
+    </div>
+  {{ end }}
+
+  <div class="product-body">
+    {{ .Content }}
+  </div>
+</article>
+{{ end }}

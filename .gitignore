@@ -1,0 +1,40 @@
+# Hugo build output
+/public/
+/resources/_gen/
+
+# Hugo cache
+/.hugo_cache/
+
+# Local Netlify CMS proxy server data
+/.netlify/
+
+# Node dependencies
+/node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# VS Code settings
+.vscode/
+
+# Environment variables
+.env
+.env.*
+
+# Temporary files
+*.tmp
+*.temp
+
+# Ignore Instagram downloads source folder if you don't want to commit raw scraped data
+/downloads/
+
+# Ignore generated products if you only want to commit source data
+# (comment this out if you want products in Git)
+# /content/products/
+# /static/uploads/products/

@@ -1,0 +1,6 @@
+title = "My Modern Hugo Site"
+baseURL = "/"
+languageCode = "en-us"
+theme = "ananke"
+[params]
+  images = []

@@ -1,0 +1,17 @@
+{
+  "name": "iman-hugo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"hugo server -D --port 3000\" \"npx netlify-cms-proxy-server\"",
+    "build": "hugo --gc --minify"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "netlify-cms-proxy-server": "^1.3.24"
+  }
+}
