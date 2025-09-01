@@ -7,141 +7,142 @@ backend:
   name: git-gateway
   branch: main
 local_backend: true
+locale: 'fa'
 media_folder: "static/img" # Folder where user uploaded files should go
 public_folder: "img"
 collections: # A list of collections the CMS should be able to edit
   - name: "post" # Used in routes, ie.: /admin/collections/:slug/edit
-    label: "Post" # Used in the UI, ie.: "New Post"
+    label: "پست" # Used in the UI, ie.: "New Post"
     folder: "content/post" # The path to the folder where the documents are stored
     path: "{{slug}}/index" # Each document is inside a folder with the slug name.
     create: true # Allow users to create new documents in this collection
     fields: # The fields each document in this collection have
-      - {label: "Title", name: "title", widget: "string"}
-      - {label: "Publish Date", name: "date", widget: "datetime"}
-      - {label: "Intro Blurb", name: "description", widget: "text"}
-      - {label: "Image", name: "image", widget: "image", required: false}
-      - {label: "Body", name: "body", widget: "markdown"}
+      - {label: "عنوان", name: "title", widget: "string"}
+      - {label: "تاریخ انتشار", name: "date", widget: "datetime"}
+      - {label: "توضیح کوتاه", name: "description", widget: "text"}
+      - {label: "تصویر", name: "image", widget: "image", required: false}
+      - {label: "متن", name: "body", widget: "markdown"}
   - name: "product" # Collection for individual products
-    label: "Products" # Used in the UI
+    label: "محصولات" # Used in the UI
     folder: "content/products" # Folder for individual products
     path: "{{slug}}/index" # Each product is inside a folder with the slug name
     create: true # Allow users to create new products
     fields: # Fields for each product
-      - {label: "Title", name: "title", widget: "string"}
-      - {label: "Date", name: "date", widget: "datetime"}
-      - {label: "Description", name: "description", widget: "text"}
-      - {label: "Primary Image", name: "image", widget: "image"}
-      - {label: "Gallery Images", name: "gallery", widget: "list", field: {label: "Image", name: "image", widget: "image"}, required: false}
-      - {label: "Price", name: "price", widget: "number", value_type: "float", min: 0}
-      - {label: "Category", name: "category", widget: "string", default: "Jewelry"}
-      - {label: "In Stock", name: "in_stock", widget: "boolean", default: true}
-      - {label: "Featured", name: "featured", widget: "boolean", default: false}
-      - {label: "Instagram Post URL", name: "instagram_post", widget: "string", required: false}
-      - {label: "Instagram ID", name: "instagram_id", widget: "string", required: false}
-      - {label: "Instagram Account", name: "instagram_account", widget: "string", required: false}
-      - {label: "Body", name: "body", widget: "markdown"}
+      - {label: "عنوان", name: "title", widget: "string"}
+      - {label: "تاریخ", name: "date", widget: "datetime"}
+      - {label: "توضیحات", name: "description", widget: "text"}
+      - {label: "تصویر اصلی", name: "image", widget: "image"}
+      - {label: "گالری تصاویر", name: "gallery", widget: "list", field: {label: "تصویر", name: "image", widget: "image"}, required: false}
+      - {label: "قیمت", name: "price", widget: "number", value_type: "float", min: 0}
+      - {label: "دسته‌بندی", name: "category", widget: "string", default: "جواهرات"}
+      - {label: "موجود در انبار", name: "in_stock", widget: "boolean", default: true}
+      - {label: "ویژه", name: "featured", widget: "boolean", default: false}
+      - {label: "لینک پست اینستاگرام", name: "instagram_post", widget: "string", required: false}
+      - {label: "شناسه اینستاگرام", name: "instagram_id", widget: "string", required: false}
+      - {label: "اکانت اینستاگرام", name: "instagram_account", widget: "string", required: false}
+      - {label: "متن", name: "body", widget: "markdown"}
   - name: "pages"
-    label: "Pages"
+    label: "صفحات"
     files:
       - file: "content/_index.md"
-        label: "Home Page"
+        label: "صفحه اصلی"
         name: "home"
         fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Subtitle, name: subtitle, widget: string}
-          - {label: Image, name: image, widget: image}
-          - {label: "Blurb", name: blurb, widget: object, fields: [{label: "Heading", name: "heading", widget: string}, {label: "Text", name: "text", widget: "text"}]}
-          - {label: "Intro", name: intro, widget: object, fields: [{label: "Heading", name: "heading", widget: string}, {label: "Text", name: "text", widget: "text"}]}
-          - {label: "Products", name: products, widget: list, fields: [{label: "Image", name: "image", widget: "image"}, {label: "Text", name: "text", widget: "text"}]}
-          - {label: "Values", name: "values", widget: "object", fields: [{label: "Heading", name: "heading", widget: string}, {label: "Text", name: "text", widget: "text"}]}
+          - {label: عنوان, name: title, widget: string}
+          - {label: زیرعنوان, name: subtitle, widget: string}
+          - {label: تصویر, name: image, widget: image}
+          - {label: "معرفی", name: blurb, widget: object, fields: [{label: "عنوان", name: "heading", widget: string}, {label: "متن", name: "text", widget: "text"}]}
+          - {label: "مقدمه", name: intro, widget: object, fields: [{label: "عنوان", name: "heading", widget: string}, {label: "متن", name: "text", widget: "text"}]}
+          - {label: "محصولات", name: products, widget: list, fields: [{label: "تصویر", name: "image", widget: "image"}, {label: "متن", name: "text", widget: "text"}]}
+          - {label: "ارزش ها", name: "values", widget: "object", fields: [{label: "عنوان", name: "heading", widget: string}, {label: "متن", name: "text", widget: "text"}]}
       - file: "content/contact/_index.md"
-        label: "Contact Page"
+        label: "صفحه تماس"
         name: "contact"
         fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Logo, name: logo, widget: image}
-          - {label: Body, name: body, widget: markdown}
-          - label: Contact Entries
+          - {label: عنوان, name: title, widget: string}
+          - {label: لوگو, name: logo, widget: image}
+          - {label: متن, name: body, widget: markdown}
+          - label: اطلاعات تماس
             name: contact_entries
             widget: list
             fields:
-              - label: Heading
+              - label: عنوان
                 name: heading
                 widget: string
-              - label: Text
+              - label: متن
                 name: text
                 widget: text
       - file: "content/products/_index.md"
-        label: "Products Page"
+        label: "صفحه محصولات"
         name: "products"
         fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Image, name: image, widget: image}
-          - {label: Intro, name: intro, widget: object, fields: [{label: Heading, name: heading, widget: string}, {label: Description, name: description, widget: text}, {label: Blurbs, name: blurbs, widget: list, fields: [{label: Image, name: image, widget: image}, {label: Text, name: text, widget: text}]}]}
-          - {label: Main, name: main, widget: object, fields: [{label: Heading, name: heading, widget: string}, {label: Description, name: description, widget: text}, {label: Image1, name: image1, widget: object, fields: [{label: Image, name: image, widget: image}, {label: Alt, name: alt, widget: string}]}, {label: Image2, name: image2, widget: object, fields: [{label: Image, name: image, widget: image}, {label: Alt, name: alt, widget: string}]}, {label: Image3, name: image3, widget: object, fields: [{label: Image, name: image, widget: image}, {label: Alt, name: alt, widget: string}]}]}
-          - {label: Testimonials, name: testimonials, widget: list, fields: [{label: Quote, name: quote, widget: string}, {label: Author, name: author, widget: string}]}
-          - {label: Full_image, name: full_image, widget: image}
-          - {label: Pricing, name: pricing, widget: object, fields: [{label: Heading, name: heading, widget: string}, {label: Description, name: description, widget: string}, {label: Plans, name: plans, widget: list, fields: [{label: Plan, name: plan, widget: string}, {label: Price, name: price, widget: string}, {label: Description, name: description, widget: string}, {label: Items, name: items, widget: list}]}]}
+          - {label: عنوان, name: title, widget: string}
+          - {label: تصویر, name: image, widget: image}
+          - {label: مقدمه, name: intro, widget: object, fields: [{label: عنوان, name: heading, widget: string}, {label: توضیحات, name: description, widget: text}, {label: نکات, name: blurbs, widget: list, fields: [{label: تصویر, name: image, widget: image}, {label: متن, name: text, widget: text}]}]}
+          - {label: اصلی, name: main, widget: object, fields: [{label: عنوان, name: heading, widget: string}, {label: توضیحات, name: description, widget: text}, {label: تصویر۱, name: image1, widget: object, fields: [{label: تصویر, name: image, widget: image}, {label: متن جایگزین, name: alt, widget: string}]}, {label: تصویر۲, name: image2, widget: object, fields: [{label: تصویر, name: image, widget: image}, {label: متن جایگزین, name: alt, widget: string}]}, {label: تصویر۳, name: image3, widget: object, fields: [{label: تصویر, name: image, widget: image}, {label: متن جایگزین, name: alt, widget: string}]}]}
+          - {label: نظرات, name: testimonials, widget: list, fields: [{label: نقل قول, name: quote, widget: string}, {label: نویسنده, name: author, widget: string}]}
+          - {label: تصویر کامل, name: full_image, widget: image}
+          - {label: قیمت‌گذاری, name: pricing, widget: object, fields: [{label: عنوان, name: heading, widget: string}, {label: توضیحات, name: description, widget: string}, {label: برنامه‌ها, name: plans, widget: list, fields: [{label: برنامه, name: plan, widget: string}, {label: قیمت, name: price, widget: string}, {label: توضیحات, name: description, widget: string}, {label: موارد, name: items, widget: list}]}]}
       - file: "content/values/_index.md"
-        label: "Values Page"
+        label: "صفحه ارزش ها"
         name: "values"
         fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Image, name: image, widget: image}
-          - label: Values
+          - {label: عنوان, name: title, widget: string}
+          - {label: تصویر, name: image, widget: image}
+          - label: ارزش ها
             name: values
             widget: list
             fields:
-              - {label: Heading, name: heading, widget: string}
-              - {label: Text, name: text, widget: text}
-              - {label: Image, name: imageUrl, widget: image}
+              - {label: عنوان, name: heading, widget: string}
+              - {label: متن, name: text, widget: text}
+              - {label: تصویر, name: imageUrl, widget: image}
   - name: "site_settings"
-    label: "Site Settings"
+    label: "تنظیمات سایت"
     files:
       - file: "data/site.json"
-        label: "Homepage Content"
+        label: "محتوای صفحه اصلی"
         name: "homepage"
         fields:
-          - {label: "Title", name: "title", widget: "string"}
-          - {label: "Subtitle", name: "subtitle", widget: "string"}
-          - {label: "Image", name: "image", widget: "image", required: false}
-          - label: "Blurb"
+          - {label: "عنوان", name: "title", widget: "string"}
+          - {label: "زیرعنوان", name: "subtitle", widget: "string"}
+          - {label: "تصویر", name: "image", widget: "image", required: false}
+          - label: "معرفی"
             name: "blurb"
             widget: "object"
             fields:
-              - {label: "Heading", name: "heading", widget: "string"}
-              - {label: "Text", name: "text", widget: "text"}
-          - label: "Intro"
+              - {label: "عنوان", name: "heading", widget: "string"}
+              - {label: "متن", name: "text", widget: "text"}
+          - label: "مقدمه"
             name: "intro"
             widget: "object"
             fields:
-              - {label: "Heading", name: "heading", widget: "string"}
-              - {label: "Text", name: "text", widget: "text"}
-          - {label: "Products", name: "products", widget: "list", required: false}
-          - label: "Values"
+              - {label: "عنوان", name: "heading", widget: "string"}
+              - {label: "متن", name: "text", widget: "text"}
+          - {label: "محصولات", name: "products", widget: "list", required: false}
+          - label: "ارزش ها"
             name: "values"
             widget: "object"
             fields:
-              - {label: "Heading", name: "heading", widget: "string"}
-              - {label: "Text", name: "text", widget: "text"}
+              - {label: "عنوان", name: "heading", widget: "string"}
+              - {label: "متن", name: "text", widget: "text"}
       - file: "data/footer.json"
-        label: Footer
+        label: پاورقی
         name: footer
         fields:
-          - {label: Title, name: title, widget: string}
-          - {label: Blurb, name: blurb, widget: text}
+          - {label: عنوان, name: title, widget: string}
+          - {label: متن, name: blurb, widget: text}
       - file: "hugo.toml"
-        label: Hugo Config
+        label: تنظیمات هوگو
         name: config
         editor:
           preview: false
         fields:
-          - {label: Site Title for Browser Tab, name: title, widget: string}
-          - label: Params
+          - {label: عنوان سایت برای تب مرورگر, name: title, widget: string}
+          - label: پارامترها
             name: params
             widget: object
             fields:
-              - label: Open Graph Image
+              - label: تصویر Open Graph
                 name: images
                 widget: list
-                field: {label: Image, name: image, widget: image}
+                field: {label: تصویر, name: image, widget: image}

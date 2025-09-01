@@ -1,8 +1,14 @@
 ﻿---
-title: "Contact"
+title: "تماس با ما"
 logo: ""
-body: "Contact page body text"
+body: "اگر سوالی دارید یا می‌خواهید با ما تماس بگیرید، لطفا از طریق ایمیل یا شبکه‌های اجتماعی با ما در ارتباط باشید. ما همیشه آماده پاسخگویی هستیم و در کوتاه‌ترین زمان ممکن به پیام‌های شما پاسخ خواهیم داد."
 contact_entries:
-  - heading: "Email"
-    text: "you@example.com"
+  - heading: "ایمیل"
+    text: "info@6sidejewelry.com"
+  - heading: "تلفن"
+    text: "+98 21 1234 5678"
+  - heading: "آدرس"
+    text: "تهران، خیابان ولیعصر، پلاک 123"
+  - heading: "ساعات کاری"
+    text: "شنبه تا پنجشنبه: ۹ صبح تا ۶ عصر"
 ---

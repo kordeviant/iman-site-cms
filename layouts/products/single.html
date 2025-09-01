@@ -1,26 +1,62 @@
+{{ define "header" }}{{ end }}
+
 {{ define "main" }}
 <article class="product-detail">
-  <h1>{{ .Title }}</h1>
-  {{ with .Params.image }}
-    <img src="{{ . }}" alt="{{ $.Title }}">
-  {{ end }}
-
   {{ if .Params.gallery }}
-    <div class="product-gallery">
-      {{ range .Params.gallery }}
-        {{ if eq .type "video" }}
-          <video controls>
-            <source src="{{ .src }}" type="video/mp4">
-          </video>
-        {{ else }}
-          <img src="{{ .src }}" alt="">
-        {{ end }}
-      {{ end }}
+  <section class="image-slider">
+    <div class="slider-container">
+      {{ range $index, $item := .Params.gallery }} {{ if eq $item.type "image"
+      }}
+      <div class="slide {{ if eq $index 0 }}active{{ end }}">
+        <img src="{{ $item.src }}" alt="" />
+      </div>
+      {{ end }} {{ end }}
     </div>
+    <button class="prev" onclick="changeSlide(-1)">&#10094;</button>
+    <button class="next" onclick="changeSlide(1)">&#10095;</button>
+  </section>
+  {{ else if .Params.image }}
+  <img src="{{ .Params.image }}" alt="{{ $.Title }}" />
   {{ end }}
 
-  <div class="product-body">
-    {{ .Content }}
-  </div>
+  <header>
+    <h1>{{ .Title }}</h1>
+  </header>
+
+  <div class="product-body">{{ .Content }}</div>
 </article>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const slides = document.querySelectorAll(".slide");
+    const sliderContainer = document.querySelector(".slider-container");
+    const isRTL = document.documentElement.dir === 'rtl';
+    let currentSlide = 0;
+
+    if (slides.length > 0 && sliderContainer) {
+      function showSlide(index) {
+        const direction = isRTL ? 1 : -1;
+        const offset = direction * index * 100;
+        sliderContainer.style.transform = `translateX(${offset}%)`;
+      }
+
+      function changeSlide(direction) {
+        currentSlide =
+          (currentSlide + direction + slides.length) % slides.length;
+        showSlide(currentSlide);
+      }
+
+      // Attach event listeners to buttons
+      const prevButton = document.querySelector(".prev");
+      const nextButton = document.querySelector(".next");
+      if (prevButton)
+        prevButton.addEventListener("click", () => changeSlide(-1));
+      if (nextButton)
+        nextButton.addEventListener("click", () => changeSlide(1));
+
+      // Auto slide every 5 seconds
+      setInterval(() => changeSlide(1), 5000);
+    }
+  });
+</script>
 {{ end }}

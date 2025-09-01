@@ -1,0 +1,29 @@
+{{ define "main" }}
+<section class="values-page">
+  <div class="container">
+    <h1>{{ .Title }}</h1>
+
+    {{ if .Params.image }}
+    <div class="values-header-image">
+      <img src="{{ .Params.image }}" alt="{{ .Title }}" />
+    </div>
+    {{ end }}
+
+    <div class="values-grid">
+      {{ range .Params.values }}
+      <div class="value-item">
+        {{ if .imageUrl }}
+        <div class="value-image">
+          <img src="{{ .imageUrl }}" alt="{{ .heading }}" />
+        </div>
+        {{ end }}
+        <div class="value-content">
+          <h3>{{ .heading }}</h3>
+          <p>{{ .text }}</p>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

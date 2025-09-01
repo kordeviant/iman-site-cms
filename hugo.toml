@@ -6,3 +6,23 @@ defaultContentLanguage = "fa"
 theme = "ananke"
 [params]
   images = []
+
+[[menu.main]]
+  name = "خانه"
+  url = "/"
+  weight = 1
+
+[[menu.main]]
+  name = "محصولات"
+  url = "/products/"
+  weight = 2
+
+[[menu.main]]
+  name = "ارزش ها"
+  url = "/values/"
+  weight = 3
+
+[[menu.main]]
+  name = "تماس با ما"
+  url = "/contact/"
+  weight = 4

@@ -1,0 +1,21 @@
+{{ define "main" }}
+<article class="post-detail">
+  <div class="container">
+    <header class="post-header">
+      <h1>{{ .Title }}</h1>
+      {{ if .Params.description }}
+      <p class="post-description">{{ .Params.description }}</p>
+      {{ end }}
+      {{ if .Params.image }}
+      <div class="post-image">
+        <img src="{{ .Params.image }}" alt="{{ .Title }}" />
+      </div>
+      {{ end }}
+    </header>
+
+    <div class="post-content">
+      {{ .Content }}
+    </div>
+  </div>
+</article>
+{{ end }}

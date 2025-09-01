@@ -1,0 +1,28 @@
+<nav class="fixed-header">
+  <div class="nav-container">
+    <a href="{{ .Site.Home.RelPermalink }}" class="logo">
+      {{ .Site.Title }}
+    </a>
+    <div class="nav-menu">
+      <ul class="nav-links">
+        {{ range .Site.Menus.main }}
+        <li><a href="{{ .URL }}">{{ .Name }}</a></li>
+        {{ end }}
+      </ul>
+      <div class="hamburger" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<script>
+function toggleMenu() {
+  const navLinks = document.querySelector('.nav-links');
+  const hamburger = document.querySelector('.hamburger');
+  navLinks.classList.toggle('active');
+  hamburger.classList.toggle('active');
+}
+</script>

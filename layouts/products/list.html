@@ -1,0 +1,41 @@
+{{ define "main" }}
+<!-- Products Grid -->
+<section class="products-grid">
+  <h1>{{ .Title }}</h1>
+  
+  <!-- Display manually added products from site data -->
+  {{ $dataProducts := site.Data.site.products }}
+  {{ if $dataProducts }}
+    {{ range $dataProducts }}
+      <div class="product-card">
+        <img src="{{ .image }}" alt="{{ .title }}">
+        <div class="product-info">
+          <h3>{{ .title }}</h3>
+          <p class="product-desc">{{ .description }}</p>
+          <p class="product-price">{{ .price | default 0 }} تومان</p>
+        </div>
+      </div>
+    {{ end }}
+  {{ end }}
+
+  <!-- Display CMS-created product pages (show all products) -->
+  {{ range .Pages }}
+  <a href="{{ .RelPermalink }}" class="product-card">
+    {{ if .Params.image }}
+    <img src="{{ .Params.image }}" alt="{{ .Title }}">
+    {{ else }}
+    <div class="no-image-placeholder">
+      <span>🏺</span>
+    </div>
+    {{ end }}
+    <div class="product-info">
+      <h3>{{ .Title | truncate 50 }}</h3>
+      <p class="product-desc">{{ .Params.description | default "محصول جواهری با کیفیت" | truncate 80 }}</p>
+      {{ if .Params.price }}
+      <p class="product-price">{{ .Params.price }} تومان</p>
+      {{ end }}
+    </div>
+  </a>
+  {{ end }}
+</section>
+{{ end }}

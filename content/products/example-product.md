@@ -1,15 +1,15 @@
 ﻿---
-title: "Example Product"
+title: "نمونه محصول"
 date: 2025-08-25
-description: "Product description"
-image: ""
+description: "این یک نمونه محصول جواهری است که با کیفیت بالا ساخته شده."
+image: "https://picsum.photos/400/300?random=999"
 gallery: []
-price: 0
-category: "Jewelry"
+price: 100000
+category: "جواهرات"
 in_stock: true
 featured: false
 instagram_post: ""
 instagram_id: ""
 instagram_account: ""
 ---
-Product details go here.
+جزئیات محصول در اینجا قرار می‌گیرد. این محصول شامل مواد با کیفیت و طراحی زیبا است.

@@ -1,0 +1,22 @@
+{{ define "main" }}
+<section class="contact-page">
+  <div class="container">
+    <h1>{{ .Title }}</h1>
+
+    <div class="contact-content">
+      <div class="contact-description">
+        {{ .Params.body | markdownify }}
+      </div>
+
+      <div class="contact-info">
+        {{ range .Params.contact_entries }}
+        <div class="contact-item">
+          <h3>{{ .heading }}</h3>
+          <p>{{ .text }}</p>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+  </div>
+</section>
+{{ end }}
