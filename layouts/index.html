@@ -1,15 +1,71 @@
 {{ define "main" }}
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hero-content">
+    <h1>{{ site.Data.site.title }}</h1>
+    {{ with site.Data.site.subtitle }}
+    <p class="subtitle">{{ . }}</p>
+    {{ end }}
+    {{ with site.Data.site.image }}
+    <img src="{{ . }}" alt="{{ site.Data.site.title }}">
+    {{ end }}
+  </div>
+</section>
+
+<!-- Blurb Section -->
+{{ with site.Data.site.blurb }}
+<section class="blurb">
+  <h2>{{ .heading }}</h2>
+  <p>{{ .text }}</p>
+</section>
+{{ end }}
+
+<!-- Intro Section -->
+{{ with site.Data.site.intro }}
+<section class="intro">
+  <h2>{{ .heading }}</h2>
+  <p>{{ .text }}</p>
+</section>
+{{ end }}
+
+<!-- Products Section -->
 <section class="products-grid">
-  {{ range where .Site.RegularPages "Section" "products" }}
-    <a href="{{ .RelPermalink }}" class="product-card">
-      {{ with .Params.image }}
-        <img src="{{ . }}" alt="{{ $.Title }}">
+  {{ $products := site.Data.site.products }}
+  {{ if $products }}
+    {{ range $products }}
+      {{ $page := $.Site.RegularPages.ByTitle . }}
+      {{ if and $page $page.Params.image }}
+      <a href="{{ $page.RelPermalink }}" class="product-card">
+        <img src="{{ $page.Params.image }}" alt="{{ $page.Title }}">
+        <div class="product-info">
+          <h3>{{ $page.Title }}</h3>
+          <p class="product-desc">{{ $page.Params.description }}</p>
+        </div>
+      </a>
       {{ end }}
-      <div class="product-info">
-        <h3>{{ .Title }}</h3>
-        <p class="product-desc">{{ .Params.description }}</p>
-      </div>
-    </a>
+    {{ end }}
+  {{ else }}
+    {{ range where $.Site.RegularPages "Section" "products" }}
+      {{ if .Params.image }}
+      <a href="{{ .RelPermalink }}" class="product-card">
+        {{ with .Params.image }}
+          <img src="{{ . }}" alt="{{ $.Title }}">
+        {{ end }}
+        <div class="product-info">
+          <h3>{{ .Title }}</h3>
+          <p class="product-desc">{{ .Params.description }}</p>
+        </div>
+      </a>
+      {{ end }}
+    {{ end }}
   {{ end }}
 </section>
+
+<!-- Values Section -->
+{{ with site.Data.site.values }}
+<section class="values">
+  <h2>{{ .heading }}</h2>
+  <p>{{ .text }}</p>
+</section>
+{{ end }}
 {{ end }}

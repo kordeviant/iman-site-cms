@@ -1,6 +1,8 @@
-title = "My Modern Hugo Site"
+title = "جواهرات 6 side"
 baseURL = "/"
-languageCode = "en-us"
+languageCode = "fa"
+languageDirection = "rtl"
+defaultContentLanguage = "fa"
 theme = "ananke"
 [params]
   images = []
