@@ -98,6 +98,32 @@ collections: # A list of collections the CMS should be able to edit
   - name: "site_settings"
     label: "Site Settings"
     files:
+      - file: "data/site.json"
+        label: "Homepage Content"
+        name: "homepage"
+        fields:
+          - {label: "Title", name: "title", widget: "string"}
+          - {label: "Subtitle", name: "subtitle", widget: "string"}
+          - {label: "Image", name: "image", widget: "image", required: false}
+          - label: "Blurb"
+            name: "blurb"
+            widget: "object"
+            fields:
+              - {label: "Heading", name: "heading", widget: "string"}
+              - {label: "Text", name: "text", widget: "text"}
+          - label: "Intro"
+            name: "intro"
+            widget: "object"
+            fields:
+              - {label: "Heading", name: "heading", widget: "string"}
+              - {label: "Text", name: "text", widget: "text"}
+          - {label: "Products", name: "products", widget: "list", required: false}
+          - label: "Values"
+            name: "values"
+            widget: "object"
+            fields:
+              - {label: "Heading", name: "heading", widget: "string"}
+              - {label: "Text", name: "text", widget: "text"}
       - file: "data/footer.json"
         label: Footer
         name: footer
