@@ -1,28 +1,31 @@
-title = "جواهرات 6 side"
+title = "6side"
 baseURL = "/"
 languageCode = "fa"
 languageDirection = "rtl"
 defaultContentLanguage = "fa"
 theme = "ananke"
+
 [params]
-  images = []
+images = ["https://www.instagram.com/stories/6sidejewelry/3771724576352063803?utm_source=ig_story_item_share&igsh=OG1oMjZycnlzdjF4"]
+
+[menu]
 
 [[menu.main]]
-  name = "خانه"
-  url = "/"
-  weight = 1
+name = "خانه"
+url = "/"
+weight = 1
 
 [[menu.main]]
-  name = "محصولات"
-  url = "/products/"
-  weight = 2
+name = "محصولات"
+url = "/products/"
+weight = 2
 
 [[menu.main]]
-  name = "ارزش ها"
-  url = "/values/"
-  weight = 3
+name = "ارزش ها"
+url = "/values/"
+weight = 3
 
 [[menu.main]]
-  name = "تماس با ما"
-  url = "/contact/"
-  weight = 4
+name = "تماس با ما"
+url = "/contact/"
+weight = 4
